@@ -2,14 +2,31 @@
 
 debugger;
 let activeEffect = undefined;
+let bucket = new WeakMap();
+
 
 function effect(fn) {
-  activeEffect = fn;
-  fn(); // 执行副作用函数，用于对象属性读取，以进行依赖收集。
-  activeEffect = undefined;
+  const effectFn = () => {
+    cleanup(effectFn)
+    activeEffect = effectFn;
+    fn(); // 执行副作用函数，用于对象属性读取，以进行依赖收集。
+  }
+
+  // 用于存放所有与该副作用函数与之相关联的依赖集合。
+  effectFn.deps = []
+  effectFn()
+
 }
 
-let bucket = new WeakMap();
+// 该函数用于清除副作用函数与之相关联的所有依赖，避免存储了无效的遗留副作用函数
+function cleanup(effectFn) {
+  const { length } = effectFn.deps
+  for(let i = 0; i < length; i++) {
+    const deps = effectFn.deps[i]
+    deps.delete(effectFn)
+  }
+  effectFn.deps.length = 0
+}
 
 function reactive(data) {
   return new Proxy(data, {
@@ -43,7 +60,10 @@ function track(target, key) {
     depsMap.set(key, (deps = new Set()));
   }
 
+  // 将当前激活的副作用函数存放到 deps 依赖集合中去。
   deps.add(activeEffect);
+  // 将所有与 activeEffect 副作用函数与之关联的依赖集合收集起来。
+  activeEffect.deps.push(deps)
 }
 
 function trigger(target, key) {
@@ -52,6 +72,8 @@ function trigger(target, key) {
 
   const deps = depsMap.get(key);
 
+  // 每次副作用函数执行时，将所有与之关联的依赖集合中删除掉，等到副作用函数重新执行后，又会重新建立联系，这样在新的联系中就不会有
+  //遗留的副作用函数进行影响了。 
   deps &&
     deps.forEach((fn) => {
       fn && fn();
@@ -62,12 +84,21 @@ function trigger(target, key) {
 
 const data = {
   name: "jack",
+  isTrue: true
 };
 
 const obj = reactive(data);
 
+let name = undefined
+
 effect(() => {
-  console.log(obj.name);
+  val = obj.isTrue ? obj.name : 'john'
+  console.log(val)
 });
 
-obj.name = "jack chen";
+obj.isTrue = false
+
+
+
+// 由于 obj.isTrue 已经设置为 false，所以 val 最终的值与 obj.name 的值已经无关了，所以 obj.name 的值无论怎么变化，副作用函数都不应该再进行执行了
+obj.name = 'xxxx'

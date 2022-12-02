@@ -31,6 +31,30 @@ target2
 
 
 
+遗留的副作用函数
+
+```JS
+const data = {
+  name: "jack",
+  isTrue: true
+};
+
+const obj = reactive(data);
+
+let name = undefined
+
+effect(() => {
+  val = obj.isTrue ? obj.name : 'john'
+  console.log(val)
+});
+
+obj.isTrue = false
+
+
+// 由于 obj.isTrue 已经设置为 false，所以 val 最终的值与 obj.name 的值已经无关了，所以 obj.name 的值无论怎么变化，副作用函数都不应该再进行执行了
+obj.name = 'xxxx'
+
+```
 
 
 
