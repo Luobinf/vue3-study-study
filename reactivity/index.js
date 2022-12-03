@@ -2,44 +2,44 @@
 
 debugger;
 let activeEffect = undefined;
-let effectStack = []
+let effectStack = [];
 
 let bucket = new WeakMap();
 
-function effect(fn) {
+function effect(fn, options = {}) {
   const effectFn = () => {
-    cleanup(effectFn)
+    cleanup(effectFn);
 
     activeEffect = effectFn;
-    effectStack.push(effectFn)
+    effectStack.push(effectFn);
 
     fn(); // 执行副作用函数，用于对象属性读取，以进行依赖收集。
 
-    effectStack.pop()
-    activeEffect = effectStack[effectStack.length - 1]
-  }
+    effectStack.pop();
+    activeEffect = effectStack[effectStack.length - 1];
+  };
 
   // 用于存放所有与该副作用函数与之相关联的依赖集合。
-  effectFn.deps = []
-  effectFn()
-
+  effectFn.deps = [];
+  effectFn.options = options
+  effectFn();
 }
 
 // 该函数用于清除副作用函数与之相关联的所有依赖，避免存储了无效的遗留副作用函数
 function cleanup(effectFn) {
-  const { length } = effectFn.deps
-  for(let i = 0; i < length; i++) {
-    const deps = effectFn.deps[i]
-    deps.delete(effectFn)
+  const { length } = effectFn.deps;
+  for (let i = 0; i < length; i++) {
+    const deps = effectFn.deps[i];
+    deps.delete(effectFn);
   }
-  effectFn.deps.length = 0
+  effectFn.deps.length = 0;
 }
 
 function reactive(data) {
   return new Proxy(data, {
     get(target, key, receiver) {
       const res = Reflect.get(target, key, receiver);
-      
+
       // 触发依赖收集
       track(target, key);
 
@@ -70,7 +70,7 @@ function track(target, key) {
   // 将当前激活的副作用函数存放到 deps 依赖集合中去。
   deps.add(activeEffect);
   // 将所有与 activeEffect 副作用函数与之关联的依赖集合收集起来。
-  activeEffect.deps.push(deps)
+  activeEffect.deps.push(deps);
 }
 
 function trigger(target, key) {
@@ -80,26 +80,36 @@ function trigger(target, key) {
   const deps = depsMap.get(key);
 
   // 每次副作用函数执行时，将所有与之关联的依赖集合中删除掉，等到副作用函数重新执行后，又会重新建立联系，这样在新的联系中就不会有
-  //遗留的副作用函数进行影响了。 
+  //遗留的副作用函数进行影响了。
 
-  const effectsToRun = new Set(deps)
+  const effectsToRun = new Set(deps);
 
   effectsToRun &&
-  effectsToRun.forEach((effectFn) => {
-      effectFn && effectFn();
+    effectsToRun.forEach((effectFn) => {
+      // 如果 trigger 触发执行的副作用函数与当前正在执行的副作用函数相同，则不触发执行，避免出现无限递归的情况。
+      if (activeEffect !== effectFn) {
+        const { scheduler } = effectFn.options
+        if(scheduler) {
+          // 支持可调度性：副作用函数的执行时机
+          scheduler && scheduler(effectFn)
+        } else {
+          // 默认执行副作用函数
+          effectFn && effectFn();
+        }
+      }
     });
-
-  
 }
 
 const data = {
   name: "jack",
-  isTrue: true
+  isTrue: true,
+  foo: 1,
 };
 
 const obj = reactive(data);
 
-let name = undefined
+let name = undefined;
+
 
 // effect(() => {
 //   val = obj.isTrue ? obj.name : 'john'
@@ -112,16 +122,74 @@ let name = undefined
 // obj.name = 'xxxx'
 
 
+// 嵌套的 effect
+// effect(() => {
+//   console.log(`最外层effect函数执行`)
+//   effect(() => {
+//     console.log(`最里层effect函数执行`)
+//     obj.name
+//   })
+//   obj.isTrue
+// })
+
+// obj.name = 90
+
+
+// 避免无限无限递归循环的情况
+// effect(() => {
+//   obj.foo = obj.foo + 1;
+// });
+
+
+
+// 支持可调度性
+// 可调度性指的是用户有能力决定什么时候去触发副作用函数的执行时机。
+
+// effect(() => {
+//   console.log(obj.foo)
+// }, {
+//   scheduler(fn) {
+//     setTimeout(() => {
+//       fn && fn()
+//     }, 0);
+//   }
+// });
+
+// obj.foo++
+// obj.foo++
+
+
+let jobQueue = new Set()
+let isFlushing = false
+let p = Promise.resolve()
+// 使用微任务控制更新 job，使得响应式数据更新多次只会执行一次。
+
+function flushJob() {
+  if(isFlushing) return
+  isFlushing = true
+  p.then(() => {
+    jobQueue.forEach(job => {
+      job && job()
+    })
+  }).finally(() => {
+    isFlushing = false
+  })
+}
+
 
 effect(() => {
-  console.log(`最外层effect函数执行`)
-  effect(() => {
-    console.log(`最里层effect函数执行`)
-    obj.name
-  })
-  obj.isTrue
-})
+  console.log(obj.foo)
+}, {
+  scheduler(fn) {
+    jobQueue.add(fn)
+    flushJob()
+  }
+});
+
+obj.foo++
+obj.foo++
 
 
 
-obj.name = 90
+
+
