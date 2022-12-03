@@ -17,16 +17,16 @@ function effect(fn, options = {}) {
 
     effectStack.pop();
     activeEffect = effectStack[effectStack.length - 1];
-    
-    return result
+
+    return result;
   };
 
   // 用于存放所有与该副作用函数与之相关联的依赖集合。
   effectFn.deps = [];
-  effectFn.options = options
+  effectFn.options = options;
 
-  if(options.lazy) {
-    return effectFn
+  if (options.lazy) {
+    return effectFn;
   }
   effectFn();
 }
@@ -94,10 +94,10 @@ function trigger(target, key) {
     effectsToRun.forEach((effectFn) => {
       // 如果 trigger 触发执行的副作用函数与当前正在执行的副作用函数相同，则不触发执行，避免出现无限递归的情况。
       if (activeEffect !== effectFn) {
-        const { scheduler } = effectFn.options
-        if(scheduler) {
+        const { scheduler } = effectFn.options;
+        if (scheduler) {
           // 支持可调度性：副作用函数的执行时机
-          scheduler && scheduler(effectFn)
+          scheduler && scheduler(effectFn);
         } else {
           // 默认执行副作用函数
           effectFn && effectFn();
@@ -106,6 +106,8 @@ function trigger(target, key) {
     });
 }
 
+// 计算属性值会基于其响应式依赖被缓存。一个计算属性仅会在其响应式依赖更新时才重新计算。
+// 计算属性应该如何实现？？
 
 
 // case=========================
@@ -117,8 +119,7 @@ const data = {
 
 const obj = reactive(data);
 
-let name = undefined;
-
+// let name = undefined;
 
 // effect(() => {
 //   val = obj.isTrue ? obj.name : 'john'
@@ -129,7 +130,6 @@ let name = undefined;
 
 // 由于 obj.isTrue 已经设置为 false，所以 val 最终的值与 obj.name 的值已经无关了，所以 obj.name 的值无论怎么变化，副作用函数都不应该再进行执行了
 // obj.name = 'xxxx'
-
 
 // 嵌套的 effect
 // effect(() => {
@@ -143,13 +143,10 @@ let name = undefined;
 
 // obj.name = 90
 
-
 // 避免无限无限递归循环的情况
 // effect(() => {
 //   obj.foo = obj.foo + 1;
 // });
-
-
 
 // 支持可调度性
 // 可调度性指的是用户有能力决定什么时候去触发副作用函数的执行时机。
@@ -166,7 +163,6 @@ let name = undefined;
 
 // obj.foo++
 // obj.foo++
-
 
 // 使用微任务控制更新 job，使得响应式数据更新多次只会执行一次。
 // let jobQueue = new Set()
@@ -185,7 +181,6 @@ let name = undefined;
 //   })
 // }
 
-
 // effect(() => {
 //   console.log(obj.foo)
 // }, {
@@ -198,20 +193,58 @@ let name = undefined;
 // obj.foo++
 // obj.foo++
 
+// const effectFn = effect(
+//   () => {
+//     console.log(`我被执行了吗？？`);
+//     return obj.foo;
+//   },
+//   {
+//     lazy: true,
+//   }
+// );
 
-const effectFn = effect(() => {
-  console.log( `我被执行了吗？？`)
-  return obj.foo
-}, {
-  lazy: true
+// const value = effectFn();
+
+// console.log(value, value);
+
+function computed(cb) {
+  // 用于缓存上一次的计算结果
+  let value;
+  let dirty = true
+
+  let getter = () => {};
+  if (typeof cb === "function") {
+    getter = cb
+  }
+  const effectFn = effect(getter, {
+    lazy: true,
+    scheduler() {
+      dirty = true
+    }
+  })
+
+  const obj = {
+    get value() {
+      if(dirty) {
+        value = effectFn()
+        dirty = false
+      }
+      return value;
+    },
+    set value(newVal) {},
+  };
+  return obj;
+}
+
+const res = computed(() => {
+  return obj.foo;
 });
 
+console.log(res.value);
 
-const value = effectFn()
+obj.foo++;
 
-console.log(value, value)
-
-
+console.log(res.value);
 
 
 

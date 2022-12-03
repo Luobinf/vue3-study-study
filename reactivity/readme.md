@@ -162,6 +162,17 @@ lazy: 用于控制副作用函数的执行时机，有时候我们并不希望�
 计算属性：计算属性的结果会被缓存，计算属性只有在其响应式依赖发生变化时才会进行计算。
 
 
+```JS
+const obj = reactive({
+    name: 'jack'
+})
+const result = computed(() => {
+    return obj.name
+})
+console.log(result.value) // 'jack'
+obj.name =  'hello ' + obj.name
+console.log(result.value) // 'hello jack'
+```
 
 
 
