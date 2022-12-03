@@ -2,14 +2,21 @@
 
 debugger;
 let activeEffect = undefined;
-let bucket = new WeakMap();
+let effectStack = []
 
+let bucket = new WeakMap();
 
 function effect(fn) {
   const effectFn = () => {
     cleanup(effectFn)
+
     activeEffect = effectFn;
+    effectStack.push(effectFn)
+
     fn(); // 执行副作用函数，用于对象属性读取，以进行依赖收集。
+
+    effectStack.pop()
+    activeEffect = effectStack[effectStack.length - 1]
   }
 
   // 用于存放所有与该副作用函数与之相关联的依赖集合。
@@ -85,8 +92,6 @@ function trigger(target, key) {
   
 }
 
-
-
 const data = {
   name: "jack",
   isTrue: true
@@ -96,14 +101,27 @@ const obj = reactive(data);
 
 let name = undefined
 
-effect(() => {
-  val = obj.isTrue ? obj.name : 'john'
-  console.log(val)
-});
+// effect(() => {
+//   val = obj.isTrue ? obj.name : 'john'
+//   console.log(val)
+// });
 
-obj.isTrue = false
-
-
+// obj.isTrue = false
 
 // 由于 obj.isTrue 已经设置为 false，所以 val 最终的值与 obj.name 的值已经无关了，所以 obj.name 的值无论怎么变化，副作用函数都不应该再进行执行了
 // obj.name = 'xxxx'
+
+
+
+effect(() => {
+  console.log(`最外层effect函数执行`)
+  effect(() => {
+    console.log(`最里层effect函数执行`)
+    obj.name
+  })
+  obj.isTrue
+})
+
+
+
+obj.name = 90

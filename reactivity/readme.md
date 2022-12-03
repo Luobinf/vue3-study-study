@@ -57,6 +57,20 @@ obj.name = 'xxxx'
 ```
 
 
+## 嵌套的 effect
+
+```JS
+effect(() => {
+  console.log(`最外层effect函数执行`)
+  effect(() => {
+    console.log(`最里层effect函数执行`)
+    obj.name
+  })
+  obj.isTrue
+})
+```
+
+
 
 
 
