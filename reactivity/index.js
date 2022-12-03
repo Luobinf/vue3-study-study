@@ -13,15 +13,21 @@ function effect(fn, options = {}) {
     activeEffect = effectFn;
     effectStack.push(effectFn);
 
-    fn(); // 执行副作用函数，用于对象属性读取，以进行依赖收集。
+    const result = fn(); // 执行副作用函数，用于对象属性读取，以进行依赖收集。
 
     effectStack.pop();
     activeEffect = effectStack[effectStack.length - 1];
+    
+    return result
   };
 
   // 用于存放所有与该副作用函数与之相关联的依赖集合。
   effectFn.deps = [];
   effectFn.options = options
+
+  if(options.lazy) {
+    return effectFn
+  }
   effectFn();
 }
 
@@ -100,6 +106,9 @@ function trigger(target, key) {
     });
 }
 
+
+
+// case=========================
 const data = {
   name: "jack",
   isTrue: true,
@@ -159,35 +168,48 @@ let name = undefined;
 // obj.foo++
 
 
-let jobQueue = new Set()
-let isFlushing = false
-let p = Promise.resolve()
 // 使用微任务控制更新 job，使得响应式数据更新多次只会执行一次。
+// let jobQueue = new Set()
+// let isFlushing = false
+// let p = Promise.resolve()
 
-function flushJob() {
-  if(isFlushing) return
-  isFlushing = true
-  p.then(() => {
-    jobQueue.forEach(job => {
-      job && job()
-    })
-  }).finally(() => {
-    isFlushing = false
-  })
-}
+// function flushJob() {
+//   if(isFlushing) return
+//   isFlushing = true
+//   p.then(() => {
+//     jobQueue.forEach(job => {
+//       job && job()
+//     })
+//   }).finally(() => {
+//     isFlushing = false
+//   })
+// }
 
 
-effect(() => {
-  console.log(obj.foo)
+// effect(() => {
+//   console.log(obj.foo)
+// }, {
+//   scheduler(fn) {
+//     jobQueue.add(fn)
+//     flushJob()
+//   }
+// });
+
+// obj.foo++
+// obj.foo++
+
+
+const effectFn = effect(() => {
+  console.log( `我被执行了吗？？`)
+  return obj.foo
 }, {
-  scheduler(fn) {
-    jobQueue.add(fn)
-    flushJob()
-  }
+  lazy: true
 });
 
-obj.foo++
-obj.foo++
+
+const value = effectFn()
+
+console.log(value, value)
 
 
 
