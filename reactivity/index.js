@@ -74,10 +74,15 @@ function trigger(target, key) {
 
   // 每次副作用函数执行时，将所有与之关联的依赖集合中删除掉，等到副作用函数重新执行后，又会重新建立联系，这样在新的联系中就不会有
   //遗留的副作用函数进行影响了。 
-  deps &&
-    deps.forEach((fn) => {
-      fn && fn();
+
+  const effectsToRun = new Set(deps)
+
+  effectsToRun &&
+  effectsToRun.forEach((effectFn) => {
+      effectFn && effectFn();
     });
+
+  
 }
 
 
@@ -101,4 +106,4 @@ obj.isTrue = false
 
 
 // 由于 obj.isTrue 已经设置为 false，所以 val 最终的值与 obj.name 的值已经无关了，所以 obj.name 的值无论怎么变化，副作用函数都不应该再进行执行了
-obj.name = 'xxxx'
+// obj.name = 'xxxx'
