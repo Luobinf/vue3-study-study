@@ -109,12 +109,12 @@ function trigger(target, key) {
 // 计算属性值会基于其响应式依赖被缓存。一个计算属性仅会在其响应式依赖更新时才重新计算。
 // 计算属性应该如何实现？？
 
-
 // case=========================
 const data = {
   name: "jack",
   isTrue: true,
   foo: 1,
+  count: 90,
 };
 
 const obj = reactive(data);
@@ -207,44 +207,114 @@ const obj = reactive(data);
 
 // console.log(value, value);
 
-function computed(cb) {
-  // 用于缓存上一次的计算结果
-  let value;
-  let dirty = true
+// function computed(cb) {
+//   // 用于缓存上一次的计算结果
+//   let value;
+//   let dirty = true
 
-  let getter = () => {};
-  if (typeof cb === "function") {
-    getter = cb
-  }
-  const effectFn = effect(getter, {
-    lazy: true,
-    scheduler() {
-      dirty = true
-    }
-  })
+//   let getter = () => {};
+//   if (typeof cb === "function") {
+//     getter = cb
+//   }
+//   const effectFn = effect(getter, {
+//     lazy: true,
+//     scheduler() {
+//       dirty = true
+//       // 当计算属性所依赖的响应式数据发生变化时，手动调用 track 函数进行更新。
+//       trigger(obj, 'value')
+//     }
+//   })
 
-  const obj = {
-    get value() {
-      if(dirty) {
-        value = effectFn()
-        dirty = false
-      }
-      return value;
-    },
-    set value(newVal) {},
-  };
-  return obj;
-}
+//   const obj = {
+//     get value() {
+//       if(dirty) {
+//         value = effectFn()
+//         dirty = false
+//       }
+//       // 当读取 value 时，手动调用 track 函数进行对 value 属性读取的副作用函数的追踪
+//       track(obj, 'value')
+//       return value;
+//     },
+//     set value(newVal) {},
+//   };
+//   return obj;
+// }
 
 const res = computed(() => {
   return obj.foo;
 });
 
-console.log(res.value);
+// console.log(res.value);
 
-obj.foo++;
+// obj.foo++;
 
-console.log(res.value);
+// console.log(res.value);
 
+// obj.foo 的数据发生变化之后，以下 effect 副作用函数并不会重新执行。原因是 res.value内部的computed中的getter函数建立了
+//联系，而res.value 与副作用函数本身并没有建立联系。只需要将res.value与最外层的副作用函数建立联系即刻。
 
+// effect(() => {
+//   console.log(res.value)
+// })
 
+// obj.foo++
+
+function computed(getterOrOptions) {
+  // 用于缓存上一次的计算结果
+  let value;
+  let dirty = true;
+
+  let getter = () => {};
+  let setter;
+  if (typeof getterOrOptions === "function") {
+    getter = getterOrOptions;
+  } else if (typeof getterOrOptions === "object" && getterOrOptions !== null) {
+    if (typeof getterOrOptions.get === "function") {
+      getter = getterOrOptions.get;
+    }
+    if (typeof getterOrOptions.set === "function") {
+      setter = getterOrOptions.set;
+    }
+  }
+  const effectFn = effect(getter, {
+    lazy: true,
+    scheduler() {
+      dirty = true;
+      // 当计算属性所依赖的响应式数据发生变化时，手动调用 track 函数进行更新。
+      trigger(obj, "value");
+    },
+  });
+
+  const obj = {
+    get value() {
+      if (dirty) {
+        value = effectFn();
+        dirty = false;
+      }
+      // 当读取 value 时，手动调用 track 函数进行对 value 属性读取的副作用函数的追踪
+      track(obj, "value");
+      return value;
+    },
+    set value(newVal) {
+      if (setter && newVal !== value) {
+        setter(newVal);
+      }
+    },
+  };
+  return obj;
+}
+
+const plusOne = computed({
+  get: () => obj.count + 1,
+  set: (val) => {
+    obj.count = val - 1;
+  },
+});
+
+effect(() => {
+  console.log(`变更了吗？`, plusOne.value);
+});
+
+console.log(plusOne.value); // 91
+plusOne.value = 1;
+console.log(obj.count); // 0
