@@ -174,6 +174,10 @@ obj.name =  'hello ' + obj.name
 console.log(result.value) // 'hello jack'
 ```
 
+# 原始值的响应式方案
+
+Proxy 与 Reflect。
+
 
 
 

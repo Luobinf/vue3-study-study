@@ -107,21 +107,22 @@ function trigger(target, key) {
 }
 
 module.exports = {
-  effect
+  effect,
+  reactive
 }
 
 // 计算属性值会基于其响应式依赖被缓存。一个计算属性仅会在其响应式依赖更新时才重新计算。
 // 计算属性应该如何实现？？
 
 // case=========================
-const data = {
-  name: "jack",
-  isTrue: true,
-  foo: 1,
-  count: 90,
-};
+// const data = {
+//   name: "jack",
+//   isTrue: true,
+//   foo: 1,
+//   count: 90,
+// };
 
-const obj = reactive(data);
+// const obj = reactive(data);
 
 // let name = undefined;
 
