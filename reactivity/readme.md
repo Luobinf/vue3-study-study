@@ -179,6 +179,69 @@ console.log(result.value) // 'hello jack'
 Proxy 与 Reflect。
 
 
+Reflect.get(target, key, receiver)。Reflect.get 提供了访问一个对象属性的默认行为，receiver 参数可以理解为函数调用过程中的 this。
+
+
+```JS
+const data = {
+    name: 'jack',
+    get value() {
+        return this.name
+    }
+}
+const res = Reflect.get(data, 'value')
+
+console.log(res) // 'jack'
+console.log(Reflect.get(data, 'value', { name: 'john'})) // 'john'
+```
+
+
+**Proxy 对象中 get 拦截函数中的 receiver 属性用来干嘛的？？看以下例子：**
+
+```JS
+const p = new Proxy(data, {
+    get(target, key, receiver) {
+       // receiver 表示谁在读取属性。这里的 receiver 指向的是 p 对象
+      const res = Reflect.get(target, key, receiver);
+
+      // 触发依赖收集
+      track(target, key);
+
+      return res;
+    },
+
+    set(target, key, val, receiver) {
+      Reflect.set(target, key, val, receiver);
+
+      // 触发依赖
+      trigger(target, key);
+    },
+  });
+```
+
+## 如何代理 Object
+
+**对象属性的获取，有哪几种方式？**
+
+```JS
+const obj = {
+	name: 'jack',
+	age: 12
+}
+
+
+obj.name // 方式一
+obj['name'] // 方式二
+
+for(let key in obj) {
+	console.log(key) //  方式三
+}
+
+name in obj // 方式四
+```
+
+## 如何代理 Array
+
 
 
 

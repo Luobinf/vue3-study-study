@@ -1,6 +1,7 @@
 // 1. 副作用函数要与操作目标字段建立明确的联系。例如我在副作用函数中读取了obj.xx 的字段，我应该将 obj 上的 xx 字段与副作用函数建立联系。
 
-debugger;
+let { hasOwn } = require('../shared/index') 
+
 let activeEffect = undefined;
 let effectStack = [];
 
@@ -58,6 +59,21 @@ function reactive(data) {
       // 触发依赖
       trigger(target, key);
     },
+
+    has(target, prop) {
+      const res = Reflect.has(target, prop)
+      track(target, prop)
+      return res
+    },
+
+    deleteProperty(target, prop) {
+      const hadKey = hasOwn(target, prop)
+      const res = Reflect.deleteProperty(target, prop)
+      if(hadKey) {
+        trigger(target, prop)
+      }
+      return res
+    }
   });
 }
 
