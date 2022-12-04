@@ -106,6 +106,10 @@ function trigger(target, key) {
     });
 }
 
+module.exports = {
+  effect
+}
+
 // 计算属性值会基于其响应式依赖被缓存。一个计算属性仅会在其响应式依赖更新时才重新计算。
 // 计算属性应该如何实现？？
 
@@ -207,42 +211,6 @@ const obj = reactive(data);
 
 // console.log(value, value);
 
-// function computed(cb) {
-//   // 用于缓存上一次的计算结果
-//   let value;
-//   let dirty = true
-
-//   let getter = () => {};
-//   if (typeof cb === "function") {
-//     getter = cb
-//   }
-//   const effectFn = effect(getter, {
-//     lazy: true,
-//     scheduler() {
-//       dirty = true
-//       // 当计算属性所依赖的响应式数据发生变化时，手动调用 track 函数进行更新。
-//       trigger(obj, 'value')
-//     }
-//   })
-
-//   const obj = {
-//     get value() {
-//       if(dirty) {
-//         value = effectFn()
-//         dirty = false
-//       }
-//       // 当读取 value 时，手动调用 track 函数进行对 value 属性读取的副作用函数的追踪
-//       track(obj, 'value')
-//       return value;
-//     },
-//     set value(newVal) {},
-//   };
-//   return obj;
-// }
-
-const res = computed(() => {
-  return obj.foo;
-});
 
 // console.log(res.value);
 
@@ -259,62 +227,17 @@ const res = computed(() => {
 
 // obj.foo++
 
-function computed(getterOrOptions) {
-  // 用于缓存上一次的计算结果
-  let value;
-  let dirty = true;
+// const plusOne = computed({
+//   get: () => obj.count + 1,
+//   set: (val) => {
+//     obj.count = val - 1;
+//   },
+// });
 
-  let getter = () => {};
-  let setter;
-  if (typeof getterOrOptions === "function") {
-    getter = getterOrOptions;
-  } else if (typeof getterOrOptions === "object" && getterOrOptions !== null) {
-    if (typeof getterOrOptions.get === "function") {
-      getter = getterOrOptions.get;
-    }
-    if (typeof getterOrOptions.set === "function") {
-      setter = getterOrOptions.set;
-    }
-  }
-  const effectFn = effect(getter, {
-    lazy: true,
-    scheduler() {
-      dirty = true;
-      // 当计算属性所依赖的响应式数据发生变化时，手动调用 track 函数进行更新。
-      trigger(obj, "value");
-    },
-  });
+// effect(() => {
+//   console.log(`变更了吗？`, plusOne.value);
+// });
 
-  const obj = {
-    get value() {
-      if (dirty) {
-        value = effectFn();
-        dirty = false;
-      }
-      // 当读取 value 时，手动调用 track 函数进行对 value 属性读取的副作用函数的追踪
-      track(obj, "value");
-      return value;
-    },
-    set value(newVal) {
-      if (setter && newVal !== value) {
-        setter(newVal);
-      }
-    },
-  };
-  return obj;
-}
-
-const plusOne = computed({
-  get: () => obj.count + 1,
-  set: (val) => {
-    obj.count = val - 1;
-  },
-});
-
-effect(() => {
-  console.log(`变更了吗？`, plusOne.value);
-});
-
-console.log(plusOne.value); // 91
-plusOne.value = 1;
-console.log(obj.count); // 0
+// console.log(plusOne.value); // 91
+// plusOne.value = 1;
+// console.log(obj.count); // 0
