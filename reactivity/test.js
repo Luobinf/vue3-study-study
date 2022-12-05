@@ -20,7 +20,7 @@ const obj = reactive(data);
 
 effect(() => {
   for (let key in obj) {
-    console.log(`??key:`, key);
+    console.log(`key:`, key);
   }
 });
 

@@ -62,6 +62,7 @@ function reactive(data) {
 
     set(target, key, val, receiver) {
       const hadKey = hasOwn(target, key);
+
       const res = Reflect.set(target, key, val, receiver);
       // 触发依赖
       if (hadKey) {
@@ -89,7 +90,7 @@ function reactive(data) {
     },
     ownKeys(target) {
       const res = Reflect.ownKeys(target);
-      track(target, "ITERABLE_KEY");
+      track(target, ITERABLE_KEY);
       return res;
     },
   });
@@ -133,14 +134,14 @@ function trigger(target, key, type) {
       }
     });
 
-  // 将与 ITERABLE_KEY 相关联的副作用函数也添加到 effectsToRun 中去。
+  // 只有当 ADD 类型时（表示新增属性），才将与 ITERABLE_KEY 相关联的副作用函数也添加到 effectsToRun 中去。
 
   if (type === TRIGGER_TYPE.ADD) {
     iterableKeyDeps &&
       iterableKeyDeps.forEach((effectFn) => {
         // 如果 trigger 触发执行的副作用函数与当前正在执行的副作用函数相同，则不触发执行，避免出现无限递归的情况。
         if (activeEffect !== effectFn) {
-          effectsToRun.add(effectsToRun);
+          effectsToRun.add(effectFn);
         }
       });
   }
