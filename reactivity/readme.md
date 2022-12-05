@@ -240,6 +240,18 @@ for(let key in obj) {
 name in obj // 方式四
 ```
 
+**in 操作符的拦截：**
+
+
+根据 ECMA 规范可知，使用 Proxy 中的 has 钩子实现。
+
+
+**for in 语句获取对象属性时的拦截：**
+
+规范：https://tc39.es/ecma262/multipage/ecmascript-language-statements-and-declarations.html#sec-for-in-and-for-of-statements
+
+
+
 ## 如何代理 Array
 
 

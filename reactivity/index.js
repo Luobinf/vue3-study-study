@@ -1,11 +1,18 @@
 // 1. 副作用函数要与操作目标字段建立明确的联系。例如我在副作用函数中读取了obj.xx 的字段，我应该将 obj 上的 xx 字段与副作用函数建立联系。
 
-let { hasOwn } = require('../shared/index') 
+let { hasOwn } = require("../shared/index");
 
 let activeEffect = undefined;
 let effectStack = [];
 
 let bucket = new WeakMap();
+
+const ITERABLE_KEY = Symbol("iterable_key");
+
+const TRIGGER_TYPE = {
+  SET: "set",
+  ADD: "add",
+};
 
 function effect(fn, options = {}) {
   const effectFn = () => {
@@ -54,26 +61,37 @@ function reactive(data) {
     },
 
     set(target, key, val, receiver) {
-      Reflect.set(target, key, val, receiver);
-
+      const hadKey = hasOwn(target, key);
+      const res = Reflect.set(target, key, val, receiver);
       // 触发依赖
-      trigger(target, key);
+      if (hadKey) {
+        trigger(target, key, TRIGGER_TYPE.SET);
+      } else {
+        trigger(target, key, TRIGGER_TYPE.ADD);
+      }
+
+      return res;
     },
 
     has(target, prop) {
-      const res = Reflect.has(target, prop)
-      track(target, prop)
-      return res
+      const res = Reflect.has(target, prop);
+      track(target, prop);
+      return res;
     },
 
     deleteProperty(target, prop) {
-      const hadKey = hasOwn(target, prop)
-      const res = Reflect.deleteProperty(target, prop)
-      if(hadKey) {
-        trigger(target, prop)
+      const hadKey = hasOwn(target, prop);
+      const res = Reflect.deleteProperty(target, prop);
+      if (hadKey) {
+        trigger(target, prop);
       }
-      return res
-    }
+      return res;
+    },
+    ownKeys(target) {
+      const res = Reflect.ownKeys(target);
+      track(target, "ITERABLE_KEY");
+      return res;
+    },
   });
 }
 
@@ -95,37 +113,55 @@ function track(target, key) {
   activeEffect.deps.push(deps);
 }
 
-function trigger(target, key) {
+function trigger(target, key, type) {
   const depsMap = bucket.get(target);
   if (!depsMap) return;
 
   const deps = depsMap.get(key);
 
+  const iterableKeyDeps = depsMap.get(ITERABLE_KEY);
   // 每次副作用函数执行时，将所有与之关联的依赖集合中删除掉，等到副作用函数重新执行后，又会重新建立联系，这样在新的联系中就不会有
   //遗留的副作用函数进行影响了。
 
-  const effectsToRun = new Set(deps);
+  const effectsToRun = new Set();
+
+  deps &&
+    deps.forEach((effectFn) => {
+      // 如果 trigger 触发执行的副作用函数与当前正在执行的副作用函数相同，则不触发执行，避免出现无限递归的情况。
+      if (activeEffect !== effectFn) {
+        effectsToRun.add(effectsToRun);
+      }
+    });
+
+  // 将与 ITERABLE_KEY 相关联的副作用函数也添加到 effectsToRun 中去。
+
+  if (type === TRIGGER_TYPE.ADD) {
+    iterableKeyDeps &&
+      iterableKeyDeps.forEach((effectFn) => {
+        // 如果 trigger 触发执行的副作用函数与当前正在执行的副作用函数相同，则不触发执行，避免出现无限递归的情况。
+        if (activeEffect !== effectFn) {
+          effectsToRun.add(effectsToRun);
+        }
+      });
+  }
 
   effectsToRun &&
     effectsToRun.forEach((effectFn) => {
-      // 如果 trigger 触发执行的副作用函数与当前正在执行的副作用函数相同，则不触发执行，避免出现无限递归的情况。
-      if (activeEffect !== effectFn) {
-        const { scheduler } = effectFn.options;
-        if (scheduler) {
-          // 支持可调度性：副作用函数的执行时机
-          scheduler && scheduler(effectFn);
-        } else {
-          // 默认执行副作用函数
-          effectFn && effectFn();
-        }
+      const { scheduler } = effectFn.options;
+      if (scheduler) {
+        // 支持可调度性：副作用函数的执行时机
+        scheduler && scheduler(effectFn);
+      } else {
+        // 默认执行副作用函数
+        effectFn && effectFn();
       }
     });
 }
 
 module.exports = {
   effect,
-  reactive
-}
+  reactive,
+};
 
 // 计算属性值会基于其响应式依赖被缓存。一个计算属性仅会在其响应式依赖更新时才重新计算。
 // 计算属性应该如何实现？？
@@ -227,7 +263,6 @@ module.exports = {
 // const value = effectFn();
 
 // console.log(value, value);
-
 
 // console.log(res.value);
 

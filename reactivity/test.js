@@ -1,3 +1,4 @@
+debugger
 const set = new Set([1]);
 const newSet = new Set(set);
 
@@ -18,10 +19,20 @@ const data = {
 const obj = reactive(data);
 
 effect(() => {
-  console.log("foo" in obj, "被执行了吗？"); // in 操作符对副作用函数进行依赖管理
+  for (let key in obj) {
+    console.log(`??key:`, key);
+  }
 });
 
-delete obj.foo; // 对响应的副作用函数进行依赖管理
+obj.name = 90
+
+// obj.foo = 90
+
+// effect(() => {
+//   console.log("foo" in obj, "被执行了吗？"); // in 操作符对副作用函数进行依赖管理
+// });
+
+// delete obj.foo; // 对响应的副作用函数进行依赖管理
 
 // 对象的代理
 
@@ -43,7 +54,6 @@ const p = new Proxy(data, {
   },
 });
 
-// for(let key in p) {
-//     console.log(`key:` , key)
+// for (let key in p) {
+//   console.log(`key:`, key);
 // }
-
