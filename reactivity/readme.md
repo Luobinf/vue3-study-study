@@ -246,7 +246,7 @@ name in obj // 方式四
 根据 ECMA 规范可知，使用 Proxy 中的 has 钩子实现。
 
 
-**for in 语句获取对象属性时的拦截：**
+**for in 语句获取对象属性时的拦截应该怎么做：**
 
 规范：https://tc39.es/ecma262/multipage/ecmascript-language-statements-and-declarations.html#sec-for-in-and-for-of-statements
 
