@@ -51,13 +51,13 @@ function cleanup(effectFn) {
   effectFn.deps.length = 0;
 }
 
-function reactive(data, isShallow = false) {
+function createReactive(data, isShallow = false, isReadonly = false) {
   return new Proxy(data, {
     // child.name: target = obj1, receiver = child,; target = obj2, receiver = child
     // 第一次读取时：receiver 是 target 的代理对象，第二次读取时 receiver 不是 target 的代理对象。
     // 如何确定 receiver 是 target 的代理对象？
 
-    get(target, key, receiver) {
+    get(reactive, key, receiver) {
       if (key === RAW) {
         return target;
       }
@@ -65,22 +65,30 @@ function reactive(data, isShallow = false) {
       const res = Reflect.get(target, key, receiver);
 
       // 触发依赖收集
-      track(target, key);
+      if(!isReadonly) {
+        track(target, key);
+      }
       
-      // 浅响应
+      // 浅响应或浅只读
       if(isShallow) {
         return res
       }
 
-      // 深响应
+      // 深响应或深只读
       if(isObject(res)) {
-        return reactive(res)
+        return isReadonly ? readonly(res) : reactive(res)
       }
 
       return res;
     },
 
     set(target, key, val, receiver) {
+
+      if(isReadonly) {
+        console.warn(`对象 ${target} 的属性 ${key} 是只读的, 无法修改`)
+        return false
+      }
+
       const hadKey = hasOwn(target, key);
       const oldVal = target[key];
       const res = Reflect.set(target, key, val, receiver);
@@ -107,6 +115,11 @@ function reactive(data, isShallow = false) {
     },
 
     deleteProperty(target, prop) {
+      if(isReadonly) {
+        console.warn(`对象 ${target} 的属性 ${key} 是只读的, 无法删除`)
+        return false
+      }
+
       const hadKey = hasOwn(target, prop);
       const res = Reflect.deleteProperty(target, prop);
       if (res && hadKey) {
@@ -123,10 +136,25 @@ function reactive(data, isShallow = false) {
   });
 }
 
+function reactive(data) {
+  return createReactive(data)
+}
+
 function shallowReactive(data) {
   // reactive（data, isShallow)
-  return reactive(data, true)
+  return createReactive(data, true)
 }
+
+// 例如组件的 props 是只读的
+function readonly(data) {
+  return createReactive(data, false, true)
+}
+
+
+function shallowReadonly(data) {
+  return createReactive(data, true, true)
+}
+
 
 function track(target, key) {
   if (!activeEffect) return;
@@ -194,7 +222,9 @@ function trigger(target, key, type) {
 module.exports = {
   effect,
   reactive,
-  shallowReactive
+  shallowReactive,
+  readonly,
+  shallowReadonly
 };
 
 // 计算属性值会基于其响应式依赖被缓存。一个计算属性仅会在其响应式依赖更新时才重新计算。
