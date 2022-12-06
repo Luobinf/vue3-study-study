@@ -51,8 +51,8 @@ function cleanup(effectFn) {
   effectFn.deps.length = 0;
 }
 
-function createReactive(data, isShallow = false, isReadonly = false) {
-  return new Proxy(data, {
+function createReactive(target, isShallow = false, isReadonly = false) {
+  return new Proxy(target, {
     // child.name: target = obj1, receiver = child,; target = obj2, receiver = child
     // 第一次读取时：receiver 是 target 的代理对象，第二次读取时 receiver 不是 target 的代理对象。
     // 如何确定 receiver 是 target 的代理对象？
