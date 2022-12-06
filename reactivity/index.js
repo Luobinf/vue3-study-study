@@ -1,6 +1,6 @@
 // 1. 副作用函数要与操作目标字段建立明确的联系。例如我在副作用函数中读取了obj.xx 的字段，我应该将 obj 上的 xx 字段与副作用函数建立联系。
 
-let { hasOwn, isEqual } = require("../shared/index");
+let { hasOwn, isEqual, isObject } = require("../shared/index");
 
 let activeEffect = undefined;
 let effectStack = [];
@@ -51,7 +51,7 @@ function cleanup(effectFn) {
   effectFn.deps.length = 0;
 }
 
-function reactive(data) {
+function reactive(data, isShallow = false) {
   return new Proxy(data, {
     // child.name: target = obj1, receiver = child,; target = obj2, receiver = child
     // 第一次读取时：receiver 是 target 的代理对象，第二次读取时 receiver 不是 target 的代理对象。
@@ -67,10 +67,16 @@ function reactive(data) {
       // 触发依赖收集
       track(target, key);
       
+      // 浅响应
+      if(isShallow) {
+        return res
+      }
+
+      // 深响应
       if(isObject(res)) {
         return reactive(res)
       }
-      
+
       return res;
     },
 
@@ -115,6 +121,11 @@ function reactive(data) {
       return res;
     },
   });
+}
+
+function shallowReactive(data) {
+  // reactive（data, isShallow)
+  return reactive(data, true)
 }
 
 function track(target, key) {
@@ -183,6 +194,7 @@ function trigger(target, key, type) {
 module.exports = {
   effect,
   reactive,
+  shallowReactive
 };
 
 // 计算属性值会基于其响应式依赖被缓存。一个计算属性仅会在其响应式依赖更新时才重新计算。
