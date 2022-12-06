@@ -66,7 +66,11 @@ function reactive(data) {
 
       // 触发依赖收集
       track(target, key);
-
+      
+      if(isObject(res)) {
+        return reactive(res)
+      }
+      
       return res;
     },
 
