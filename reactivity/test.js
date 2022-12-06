@@ -1,4 +1,4 @@
-debugger
+debugger;
 const set = new Set([1]);
 const newSet = new Set(set);
 
@@ -10,23 +10,34 @@ newSet.forEach((item) => {
 
 const { reactive, effect } = require("./index");
 
-const data = {
-  foo: 1,
-  get bar() {
-    return this.foo;
-  },
-};
-const obj = reactive(data);
+// const data = {
+//   foo: 1,
+//   get bar() {
+//     return this.foo;
+//   },
+// };
+// const obj = reactive(data);
 
-effect(() => {
-  for (let key in obj) {
-    console.log(`key:`, key);
-  }
-});
+// 增加一个对象本身不存在的属性时的拦截？
+// effect(() => {
+//   for (let key in obj) {
+//     console.log(`key:`, key);
+//   }
+// });
 
-obj.name = 90
+// obj.name = 90;
 
+// 更新对象属性值时不应该执行上述的 effect
 // obj.foo = 90
+
+// effect(() => {
+//   for (let key in obj) {
+//     console.log(`key:`, key);
+//   }
+// });
+
+// delete obj.foo // 删除属性，上述副作用函数应该重新执行。
+
 
 // effect(() => {
 //   console.log("foo" in obj, "被执行了吗？"); // in 操作符对副作用函数进行依赖管理
@@ -36,24 +47,23 @@ obj.name = 90
 
 // 对象的代理
 
-const p = new Proxy(data, {
-  get(target, key, receiver) {
-    console.log("你好");
-    return Reflect.get(target, key, receiver);
-  },
-  ownKeys(target) {
-    const res = Reflect.ownKeys(target);
-    console.log("获取属性", res);
-    return res;
-  },
-  deleteProperty(target, key) {
-    return Reflect.deleteProperty(target, key);
-  },
-  has(target, prop) {
-    return Reflect.has(target, prop);
-  },
-});
+var obj1 = {
 
-// for (let key in p) {
-//   console.log(`key:`, key);
-// }
+}
+
+var obj2 = {
+	name: '23'
+}
+
+const child = reactive(obj1)
+const parent = reactive(obj2)
+
+Object.setPrototypeOf(child, parent)
+
+effect(() => {
+	console.log(child.name)
+})
+
+child.name = 90
+
+

@@ -174,10 +174,7 @@ obj.name =  'hello ' + obj.name
 console.log(result.value) // 'hello jack'
 ```
 
-# 原始值的响应式方案
-
-Proxy 与 Reflect。
-
+chil
 
 Reflect.get(target, key, receiver)。Reflect.get 提供了访问一个对象属性的默认行为，receiver 参数可以理解为函数调用过程中的 this。
 
@@ -250,6 +247,45 @@ name in obj // 方式四
 
 规范：https://tc39.es/ecma262/multipage/ecmascript-language-statements-and-declarations.html#sec-for-in-and-for-of-statements
 
+
+**删除一个对象属性如何拦截？**
+
+```JS
+// 举个🌰：
+effect(() => {
+  for (let key in obj) {
+    console.log(`key:`, key);
+  }
+});
+
+delete obj.foo // 删除 foo 属性，那么相当于 obj 对象少了一些属性，故与该对象相关的副作用函数应该重新执行。
+```
+
+
+**合理地触发响应**
+
+值不改变不应该触发副作用函数的执行，需要避免触发因原型引起的副作用函数的更新。
+
+```JS
+// 需要避免触发因原型引起的副作用函数的更新
+let obj1 = {
+
+}
+let obj2 = {
+	name: '23'
+}
+
+const child = reactive(obj1)
+const parent = reactive(obj2)
+
+Object.setPrototypeOf(child, parent)
+
+effect(() => {
+	console.log(child.name)
+})
+
+child.name = 90 // 设置name的属性值为 90 以后，副作用函数应该执行一次
+```
 
 
 ## 如何代理 Array

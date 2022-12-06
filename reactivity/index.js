@@ -1,6 +1,6 @@
 // 1. 副作用函数要与操作目标字段建立明确的联系。例如我在副作用函数中读取了obj.xx 的字段，我应该将 obj 上的 xx 字段与副作用函数建立联系。
 
-let { hasOwn } = require("../shared/index");
+let { hasOwn, isEqual } = require("../shared/index");
 
 let activeEffect = undefined;
 let effectStack = [];
@@ -12,7 +12,9 @@ const ITERABLE_KEY = Symbol("iterable_key");
 const TRIGGER_TYPE = {
   SET: "set",
   ADD: "add",
+  DELETE: "delete",
 };
+const RAW = "__IS_RAW__";
 
 function effect(fn, options = {}) {
   const effectFn = () => {
@@ -51,7 +53,15 @@ function cleanup(effectFn) {
 
 function reactive(data) {
   return new Proxy(data, {
+    // child.name: target = obj1, receiver = child,; target = obj2, receiver = child
+    // 第一次读取时：receiver 是 target 的代理对象，第二次读取时 receiver 不是 target 的代理对象。
+    // 如何确定 receiver 是 target 的代理对象？
+
     get(target, key, receiver) {
+      if (key === RAW) {
+        return target;
+      }
+
       const res = Reflect.get(target, key, receiver);
 
       // 触发依赖收集
@@ -62,13 +72,19 @@ function reactive(data) {
 
     set(target, key, val, receiver) {
       const hadKey = hasOwn(target, key);
-
+      const oldVal = target[key];
       const res = Reflect.set(target, key, val, receiver);
-      // 触发依赖
-      if (hadKey) {
-        trigger(target, key, TRIGGER_TYPE.SET);
-      } else {
-        trigger(target, key, TRIGGER_TYPE.ADD);
+
+      if (!isEqual(oldVal, val)) {
+        // 触发依赖
+        // 说明 receiver 是 target 的代理对象，避免触发因原型引起的副作用函数的更新
+        if(target === receiver[RAW]) {
+          if (hadKey) {
+            trigger(target, key, TRIGGER_TYPE.SET);
+          } else {
+            trigger(target, key, TRIGGER_TYPE.ADD);
+          }
+        }
       }
 
       return res;
@@ -83,11 +99,12 @@ function reactive(data) {
     deleteProperty(target, prop) {
       const hadKey = hasOwn(target, prop);
       const res = Reflect.deleteProperty(target, prop);
-      if (hadKey) {
-        trigger(target, prop);
+      if (res && hadKey) {
+        trigger(target, prop, TRIGGER_TYPE.DELETE);
       }
       return res;
     },
+
     ownKeys(target) {
       const res = Reflect.ownKeys(target);
       track(target, ITERABLE_KEY);
@@ -130,13 +147,13 @@ function trigger(target, key, type) {
     deps.forEach((effectFn) => {
       // 如果 trigger 触发执行的副作用函数与当前正在执行的副作用函数相同，则不触发执行，避免出现无限递归的情况。
       if (activeEffect !== effectFn) {
-        effectsToRun.add(effectsToRun);
+        effectsToRun.add(effectFn);
       }
     });
 
   // 只有当 ADD 类型时（表示新增属性），才将与 ITERABLE_KEY 相关联的副作用函数也添加到 effectsToRun 中去。
 
-  if (type === TRIGGER_TYPE.ADD) {
+  if (type === TRIGGER_TYPE.ADD || type === TRIGGER_TYPE.DELETE) {
     iterableKeyDeps &&
       iterableKeyDeps.forEach((effectFn) => {
         // 如果 trigger 触发执行的副作用函数与当前正在执行的副作用函数相同，则不触发执行，避免出现无限递归的情况。
