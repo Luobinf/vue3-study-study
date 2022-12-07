@@ -180,20 +180,24 @@ function trigger(target, key, type) {
   let deps = []
   // const deps = depsMap.get(key);
 
-  const iterableKeyDeps = depsMap.get(ITERABLE_KEY);
+  // const iterableKeyDeps = depsMap.get(ITERABLE_KEY);
   // 每次副作用函数执行时，将所有与之关联的依赖集合中删除掉，等到副作用函数重新执行后，又会重新建立联系，这样在新的联系中就不会有
   //遗留的副作用函数进行影响了。
 
   const effectsToRun = new Set();
 
-  deps &&
-    deps.forEach((effectFn) => {
-      // 如果 trigger 触发执行的副作用函数与当前正在执行的副作用函数相同，则不触发执行，避免出现无限递归的情况。
-      if (activeEffect !== effectFn) {
-        effectsToRun.add(effectFn);
-      }
-    });
+  // deps &&
+  //   deps.forEach((effectFn) => {
+  //     // 如果 trigger 触发执行的副作用函数与当前正在执行的副作用函数相同，则不触发执行，避免出现无限递归的情况。
+  //     if (activeEffect !== effectFn) {
+  //       effectsToRun.add(effectFn);
+  //     }
+  //   });
 
+  // store all deps for SET | ADD | DELETE operate
+  if(key !== undefined) {
+    deps.push(depsMap.get(key))
+  }
 
   // 只有当 ADD 类型时（表示新增属性），才将与 ITERABLE_KEY 相关联的副作用函数也添加到 effectsToRun 中去。
   switch (type) {
@@ -201,6 +205,7 @@ function trigger(target, key, type) {
       if(!Array.isArray(target)) {
         deps.push(depsMap.get(ITERABLE_KEY))
       } else if(Array.isArray(target) && isIntegerKey(key)) {
+        // new index added to array -> length changes
         deps.push(depsMap.get('length'))
       }
       // iterableKeyDeps &&
@@ -212,13 +217,16 @@ function trigger(target, key, type) {
       //   });
       break;
     case TriggerOpTypes.DELETE:
-      iterableKeyDeps &&
-        iterableKeyDeps.forEach((effectFn) => {
-          // 如果 trigger 触发执行的副作用函数与当前正在执行的副作用函数相同，则不触发执行，避免出现无限递归的情况。
-          if (activeEffect !== effectFn) {
-            effectsToRun.add(effectFn);
-          }
-        });
+      if(!Array.isArray(target)) {
+        deps.push(depsMap.get(ITERABLE_KEY))
+      }
+      // iterableKeyDeps &&
+      //   iterableKeyDeps.forEach((effectFn) => {
+      //     // 如果 trigger 触发执行的副作用函数与当前正在执行的副作用函数相同，则不触发执行，避免出现无限递归的情况。
+      //     if (activeEffect !== effectFn) {
+      //       effectsToRun.add(effectFn);
+      //     }
+      //   });
     case TriggerOpTypes.SET:
 
       break;
