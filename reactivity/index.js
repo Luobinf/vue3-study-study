@@ -1,6 +1,6 @@
 // 1. 副作用函数要与操作目标字段建立明确的联系。例如我在副作用函数中读取了obj.xx 的字段，我应该将 obj 上的 xx 字段与副作用函数建立联系。
 
-let { hasOwn, isEqual, isObject } = require("../shared/index");
+let { hasOwn, hasChanged, isObject, isIntegerKey } = require("../shared/index");
 
 let activeEffect = undefined;
 let effectStack = [];
@@ -9,7 +9,7 @@ let bucket = new WeakMap();
 
 const ITERABLE_KEY = Symbol("iterable_key");
 
-const TRIGGER_TYPE = {
+const TriggerOpTypes = {
   SET: "set",
   ADD: "add",
   DELETE: "delete",
@@ -57,7 +57,7 @@ function createReactive(target, isShallow = false, isReadonly = false) {
     // 第一次读取时：receiver 是 target 的代理对象，第二次读取时 receiver 不是 target 的代理对象。
     // 如何确定 receiver 是 target 的代理对象？
 
-    get(reactive, key, receiver) {
+    get(target, key, receiver) {
       if (key === RAW) {
         return target;
       }
@@ -65,43 +65,44 @@ function createReactive(target, isShallow = false, isReadonly = false) {
       const res = Reflect.get(target, key, receiver);
 
       // 触发依赖收集
-      if(!isReadonly) {
+      if (!isReadonly) {
         track(target, key);
       }
-      
+
       // 浅响应或浅只读
-      if(isShallow) {
-        return res
+      if (isShallow) {
+        return res;
       }
 
       // 深响应或深只读
-      if(isObject(res)) {
-        return isReadonly ? readonly(res) : reactive(res)
+      if (isObject(res)) {
+        return isReadonly ? readonly(res) : reactive(res);
       }
 
       return res;
     },
 
     set(target, key, val, receiver) {
-
-      if(isReadonly) {
-        console.warn(`对象 ${target} 的属性 ${key} 是只读的, 无法修改`)
-        return false
+      if (isReadonly) {
+        console.warn(`对象 ${target} 的属性 ${key} 是只读的, 无法修改`);
+        return false;
       }
 
-      const hadKey = hasOwn(target, key);
+      const hadKey =
+        Array.isArray(target) && isIntegerKey(key)
+          ? Number(key) < target.length
+          : hasOwn(target, key);
+
       const oldVal = target[key];
       const res = Reflect.set(target, key, val, receiver);
 
-      if (!isEqual(oldVal, val)) {
-        // 触发依赖
-        // 说明 receiver 是 target 的代理对象，避免触发因原型引起的副作用函数的更新
-        if(target === receiver[RAW]) {
-          if (hadKey) {
-            trigger(target, key, TRIGGER_TYPE.SET);
-          } else {
-            trigger(target, key, TRIGGER_TYPE.ADD);
-          }
+      // 触发依赖
+      // 说明 receiver 是 target 的代理对象，避免触发因原型引起的副作用函数的更新
+      if (target === receiver[RAW]) {
+        if (!hadKey) {
+          trigger(target, key, TriggerOpTypes.ADD);
+        } else if (hasChanged(oldVal, val)) {
+          trigger(target, key, TriggerOpTypes.SET);
         }
       }
 
@@ -115,15 +116,15 @@ function createReactive(target, isShallow = false, isReadonly = false) {
     },
 
     deleteProperty(target, prop) {
-      if(isReadonly) {
-        console.warn(`对象 ${target} 的属性 ${key} 是只读的, 无法删除`)
-        return false
+      if (isReadonly) {
+        console.warn(`对象 ${target} 的属性 ${key} 是只读的, 无法删除`);
+        return false;
       }
 
       const hadKey = hasOwn(target, prop);
       const res = Reflect.deleteProperty(target, prop);
       if (res && hadKey) {
-        trigger(target, prop, TRIGGER_TYPE.DELETE);
+        trigger(target, prop, TriggerOpTypes.DELETE);
       }
       return res;
     },
@@ -137,24 +138,22 @@ function createReactive(target, isShallow = false, isReadonly = false) {
 }
 
 function reactive(data) {
-  return createReactive(data)
+  return createReactive(data);
 }
 
 function shallowReactive(data) {
   // reactive（data, isShallow)
-  return createReactive(data, true)
+  return createReactive(data, true);
 }
 
 // 例如组件的 props 是只读的
 function readonly(data) {
-  return createReactive(data, false, true)
+  return createReactive(data, false, true);
 }
-
 
 function shallowReadonly(data) {
-  return createReactive(data, true, true)
+  return createReactive(data, true, true);
 }
-
 
 function track(target, key) {
   if (!activeEffect) return;
@@ -178,7 +177,8 @@ function trigger(target, key, type) {
   const depsMap = bucket.get(target);
   if (!depsMap) return;
 
-  const deps = depsMap.get(key);
+  let deps = []
+  // const deps = depsMap.get(key);
 
   const iterableKeyDeps = depsMap.get(ITERABLE_KEY);
   // 每次副作用函数执行时，将所有与之关联的依赖集合中删除掉，等到副作用函数重新执行后，又会重新建立联系，这样在新的联系中就不会有
@@ -194,16 +194,34 @@ function trigger(target, key, type) {
       }
     });
 
-  // 只有当 ADD 类型时（表示新增属性），才将与 ITERABLE_KEY 相关联的副作用函数也添加到 effectsToRun 中去。
 
-  if (type === TRIGGER_TYPE.ADD || type === TRIGGER_TYPE.DELETE) {
-    iterableKeyDeps &&
-      iterableKeyDeps.forEach((effectFn) => {
-        // 如果 trigger 触发执行的副作用函数与当前正在执行的副作用函数相同，则不触发执行，避免出现无限递归的情况。
-        if (activeEffect !== effectFn) {
-          effectsToRun.add(effectFn);
-        }
-      });
+  // 只有当 ADD 类型时（表示新增属性），才将与 ITERABLE_KEY 相关联的副作用函数也添加到 effectsToRun 中去。
+  switch (type) {
+    case TriggerOpTypes.ADD:
+      if(!Array.isArray(target)) {
+        deps.push(depsMap.get(ITERABLE_KEY))
+      } else if(Array.isArray(target) && isIntegerKey(key)) {
+        deps.push(depsMap.get('length'))
+      }
+      // iterableKeyDeps &&
+      //   iterableKeyDeps.forEach((effectFn) => {
+      //     // 如果 trigger 触发执行的副作用函数与当前正在执行的副作用函数相同，则不触发执行，避免出现无限递归的情况。
+      //     if (activeEffect !== effectFn) {
+      //       effectsToRun.add(effectFn);
+      //     }
+      //   });
+      break;
+    case TriggerOpTypes.DELETE:
+      iterableKeyDeps &&
+        iterableKeyDeps.forEach((effectFn) => {
+          // 如果 trigger 触发执行的副作用函数与当前正在执行的副作用函数相同，则不触发执行，避免出现无限递归的情况。
+          if (activeEffect !== effectFn) {
+            effectsToRun.add(effectFn);
+          }
+        });
+    case TriggerOpTypes.SET:
+
+      break;
   }
 
   effectsToRun &&
@@ -224,7 +242,7 @@ module.exports = {
   reactive,
   shallowReactive,
   readonly,
-  shallowReadonly
+  shallowReadonly,
 };
 
 // 计算属性值会基于其响应式依赖被缓存。一个计算属性仅会在其响应式依赖更新时才重新计算。

@@ -10,6 +10,18 @@ newSet.forEach((item) => {
 
 const { reactive, effect } = require("./index");
 
+
+const list = reactive([23,90])
+
+effect(() => {
+	console.log(list.length)
+})
+
+
+list[2] = 99
+
+
+
 // const data = {
 //   foo: 1,
 //   get bar() {
@@ -47,23 +59,23 @@ const { reactive, effect } = require("./index");
 
 // 对象的代理
 
-var obj1 = {
+// var obj1 = {
 
-}
+// }
 
-var obj2 = {
-	name: '23'
-}
+// var obj2 = {
+// 	name: '23'
+// }
 
-const child = reactive(obj1)
-const parent = reactive(obj2)
+// const child = reactive(obj1)
+// const parent = reactive(obj2)
 
-Object.setPrototypeOf(child, parent)
+// Object.setPrototypeOf(child, parent)
 
-effect(() => {
-	console.log(child.name)
-})
+// effect(() => {
+// 	console.log(child.name)
+// })
 
-child.name = 90
+// child.name = 90
 
 
