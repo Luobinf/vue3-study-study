@@ -178,28 +178,17 @@ function trigger(target, key, type) {
   if (!depsMap) return;
 
   let deps = []
-  // const deps = depsMap.get(key);
 
   // const iterableKeyDeps = depsMap.get(ITERABLE_KEY);
   // 每次副作用函数执行时，将所有与之关联的依赖集合中删除掉，等到副作用函数重新执行后，又会重新建立联系，这样在新的联系中就不会有
   //遗留的副作用函数进行影响了。
-
-  const effectsToRun = new Set();
-
-  // deps &&
-  //   deps.forEach((effectFn) => {
-  //     // 如果 trigger 触发执行的副作用函数与当前正在执行的副作用函数相同，则不触发执行，避免出现无限递归的情况。
-  //     if (activeEffect !== effectFn) {
-  //       effectsToRun.add(effectFn);
-  //     }
-  //   });
 
   // store all deps for SET | ADD | DELETE operate
   if(key !== undefined) {
     deps.push(depsMap.get(key))
   }
 
-  // 只有当 ADD 类型时（表示新增属性），才将与 ITERABLE_KEY 相关联的副作用函数也添加到 effectsToRun 中去。
+  // 只有当 ADD 类型时（表示新增属性），才将与 ITERABLE_KEY 相关联的副作用函数也添加到 deps 中去。
   switch (type) {
     case TriggerOpTypes.ADD:
       if(!Array.isArray(target)) {
@@ -208,41 +197,51 @@ function trigger(target, key, type) {
         // new index added to array -> length changes
         deps.push(depsMap.get('length'))
       }
-      // iterableKeyDeps &&
-      //   iterableKeyDeps.forEach((effectFn) => {
-      //     // 如果 trigger 触发执行的副作用函数与当前正在执行的副作用函数相同，则不触发执行，避免出现无限递归的情况。
-      //     if (activeEffect !== effectFn) {
-      //       effectsToRun.add(effectFn);
-      //     }
-      //   });
       break;
     case TriggerOpTypes.DELETE:
       if(!Array.isArray(target)) {
         deps.push(depsMap.get(ITERABLE_KEY))
       }
-      // iterableKeyDeps &&
-      //   iterableKeyDeps.forEach((effectFn) => {
-      //     // 如果 trigger 触发执行的副作用函数与当前正在执行的副作用函数相同，则不触发执行，避免出现无限递归的情况。
-      //     if (activeEffect !== effectFn) {
-      //       effectsToRun.add(effectFn);
-      //     }
-      //   });
+      break
     case TriggerOpTypes.SET:
 
       break;
   }
+  
+  const effects = []
+  for(const dep of deps) {
+    if(dep) {
+      effects.push(...dep)
+    }
+  }
 
-  effectsToRun &&
-    effectsToRun.forEach((effectFn) => {
-      const { scheduler } = effectFn.options;
-      if (scheduler) {
-        // 支持可调度性：副作用函数的执行时机
-        scheduler && scheduler(effectFn);
-      } else {
-        // 默认执行副作用函数
-        effectFn && effectFn();
-      }
-    });
+  triggerEffects(createDep(effects))
+}
+
+
+function triggerEffects(effects) {
+  for(const effect of effects) {
+    triggerEffect(effect)
+  }
+}
+
+
+function triggerEffect(effect) {
+  if(effect !== activeEffect) {
+    const { scheduler } = effect.options;
+    if (scheduler) {
+      // 支持可调度性：副作用函数的执行时机
+      scheduler(effect);
+    } else {
+      // 默认执行副作用函数
+      effect && effect();
+    }
+  }
+}
+
+function createDep(effects) {
+  const dep = new Set(effects)
+  return dep
 }
 
 module.exports = {
