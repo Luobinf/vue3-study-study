@@ -13,12 +13,30 @@ const { reactive, effect } = require("./index");
 
 const list = reactive([23,90])
 
+// test
+// effect(() => {
+// 	console.log(list.length)
+// })
+
+// list[2] = 99 // 修改数组属性可能会隐式的修改数组长度
+
+
 effect(() => {
-	console.log(list.length)
+	console.log(list[0])
 })
 
+list.length = 0 // 修改数组长度可能会隐式的修改数组属性值
 
-list[2] = 99
+
+
+// test
+// effect(() => {
+// 	for(let val of list) {
+// 		console.log(val)
+// 	}
+// })
+
+// list[2] = 99
 
 
 

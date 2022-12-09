@@ -102,7 +102,8 @@ function createReactive(target, isShallow = false, isReadonly = false) {
         if (!hadKey) {
           trigger(target, key, TriggerOpTypes.ADD);
         } else if (hasChanged(oldVal, val)) {
-          trigger(target, key, TriggerOpTypes.SET);
+          // 触发set操作，只有新的值与旧的值不一样才需要执行与之相关的副作用函数
+          trigger(target, key, TriggerOpTypes.SET, val, oldVal);
         }
       }
 
@@ -173,11 +174,18 @@ function track(target, key) {
   activeEffect.deps.push(deps);
 }
 
-function trigger(target, key, type) {
+function trigger(target, key, type, newVal, oldVal) {
   const depsMap = bucket.get(target);
   if (!depsMap) return;
 
   let deps = []
+
+  if(Array.isArray(target) && key === 'length') {
+    // 取出索引值大于等于 length 长度的副作用依赖
+    for(let index = Number(oldVal); index >= Number(newVal); index--) {
+      deps.push( depsMap.get(`${index}`) )
+    }
+  }
 
   // const iterableKeyDeps = depsMap.get(ITERABLE_KEY);
   // 每次副作用函数执行时，将所有与之关联的依赖集合中删除掉，等到副作用函数重新执行后，又会重新建立联系，这样在新的联系中就不会有
