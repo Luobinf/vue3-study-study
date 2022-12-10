@@ -14,6 +14,29 @@ const { reactive, effect } = require("./index");
 const list = reactive([23,90])
 
 // test
+effect(() => {
+	for(let val of list) {
+		console.log(`数据：${val}`)
+	}
+})
+
+list[2] = 99 // 添加新元素，影响了 for in 循环的遍历操作
+
+
+// test
+// effect(() => {
+// 	for(let key in list) {
+// 		console.log(`数据：${list[key]}`)
+// 	}
+// })
+
+// list[2] = 99 // 添加新元素，影响了 for in 循环的遍历操作
+// list.length = 0 // 修改数组长度，影响了 for in 循环的遍历操作
+
+// 以上本质上都是修改了数组的length属性，那么只要使用 length 去建立响应联系即可。
+
+
+// test
 // effect(() => {
 // 	console.log(list.length)
 // })
@@ -28,19 +51,6 @@ const list = reactive([23,90])
 
 // list.length = 0 // 修改数组长度可能会隐式的修改数组属性值
 
-
-
-// test
-effect(() => {
-	for(let key in list) {
-		console.log(key)
-	}
-})
-
-list[2] = 99 // 添加新元素，影响了 for in 循环的遍历操作
-list.length = 0 // 修改数组长度，影响了 for in 循环的遍历操作
-
-// 以上本质上都是修改了数组的length属性，那么只要使用 length 去建立响应联系即可。
 
 
 // const data = {

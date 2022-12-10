@@ -132,7 +132,12 @@ function createReactive(target, isShallow = false, isReadonly = false) {
 
     ownKeys(target) {
       const res = Reflect.ownKeys(target);
-      track(target, ITERABLE_KEY);
+      if( Array.isArray(target) ) {
+        track(target, 'length');
+      } else {
+        // 非数组可迭代对象，依赖收集
+        track(target, ITERABLE_KEY);
+      }
       return res;
     },
   });
