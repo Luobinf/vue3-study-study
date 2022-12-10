@@ -1,6 +1,6 @@
 // 1. 副作用函数要与操作目标字段建立明确的联系。例如我在副作用函数中读取了obj.xx 的字段，我应该将 obj 上的 xx 字段与副作用函数建立联系。
 
-let { hasOwn, hasChanged, isObject, isIntegerKey } = require("../shared/index");
+let { hasOwn, hasChanged, isObject, isIntegerKey, isSymbol } = require("../shared/index");
 
 let activeEffect = undefined;
 let effectStack = [];
@@ -65,7 +65,7 @@ function createReactive(target, isShallow = false, isReadonly = false) {
       const res = Reflect.get(target, key, receiver);
 
       // 触发依赖收集
-      if (!isReadonly) {
+      if (!isReadonly && !isSymbol(key)) {
         track(target, key);
       }
 

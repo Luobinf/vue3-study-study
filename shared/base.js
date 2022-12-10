@@ -14,9 +14,14 @@ function isIntegerKey(key) {
 	return Number.isInteger(parseInt(key))
 }
 
+function isSymbol(source) {
+	return Object.prototype.toString.call(source) === '[object Symbol]'
+}
+
 module.exports = {
   hasOwn,
 	hasChanged,
 	isObject,
-	isIntegerKey
+	isIntegerKey,
+	isSymbol
 };

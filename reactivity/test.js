@@ -8,6 +8,7 @@ newSet.forEach((item) => {
   // console.log(7878)
 });
 
+const { render } = require("vue");
 const { reactive, effect } = require("./index");
 
 
@@ -19,6 +20,7 @@ effect(() => {
 		console.log(`数据：${val}`)
 	}
 })
+
 
 list[2] = 99 // 添加新元素，影响了 for in 循环的遍历操作
 
