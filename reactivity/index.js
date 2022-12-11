@@ -1,12 +1,13 @@
 // 1. 副作用函数要与操作目标字段建立明确的联系。例如我在副作用函数中读取了obj.xx 的字段，我应该将 obj 上的 xx 字段与副作用函数建立联系。
 
-let {
+const {
   hasOwn,
   hasChanged,
   isObject,
   isIntegerKey,
   isSymbol,
 } = require("../shared/index");
+const { TriggerOpTypes } = require('./operation')
 
 let activeEffect = undefined;
 let effectStack = [];
@@ -15,12 +16,6 @@ let shouldTrack = true;
 let bucket = new WeakMap();
 const reactiveMap = new WeakMap();
 const ITERABLE_KEY = Symbol("iterable_key");
-
-const TriggerOpTypes = {
-  SET: "set",
-  ADD: "add",
-  DELETE: "delete",
-};
 
 const RAW = "__IS_RAW__";
 
