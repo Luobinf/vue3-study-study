@@ -1,22 +1,28 @@
-debugger;
-const set = new Set([1]);
-const newSet = new Set(set);
 
-newSet.forEach((item) => {
-  set.delete(1);
-  set.add(1);
-  // console.log(7878)
-});
-
-const { render } = require("vue");
 const { reactive, effect } = require("./index");
 
+
+// const obj = new Proxy(ss, {
+// 	get(target, key, receiver) {
+// 		if(key === 'size') {
+// 			return Reflect.get(target, key, target)
+// 		}
+// 		return target[key].bind(target)
+// 	},
+// 	deleteProperty(target) {
+// 		console.log(888)
+// 	}
+// })
+
+// console.log( obj.size ) // 报错
+
+
 const arr = reactive([])
-
 effect(() => {
-	arr.push(1)
+	console.log(arr[0])
 })
-
+arr.push(1)
+// arr.length = 90
 // effect(() => {
 // 	arr.push(1)
 // })

@@ -3,25 +3,33 @@ function hasOwn(obj, prop) {
 }
 
 function hasChanged(val1, val2) {
-	return !Object.is(val1, val2)
+  return !Object.is(val1, val2);
 }
 
 function isObject(source) {
-	return Object.prototype.toString.call(source) === '[object Object]'
+  return typeof source === 'object' && source !== null;
 }
 
 function isIntegerKey(key) {
-	return Number.isInteger(parseInt(key))
+  return Number.isInteger(parseInt(key));
 }
 
 function isSymbol(source) {
-	return Object.prototype.toString.call(source) === '[object Symbol]'
+  return Object.prototype.toString.call(source) === "[object Symbol]";
 }
+
+function toRawType(source) {
+  return Object.prototype.toString.call(source).slice(8, -1);
+}
+
+const extend = Object.assign;
 
 module.exports = {
   hasOwn,
-	hasChanged,
-	isObject,
-	isIntegerKey,
-	isSymbol
+  hasChanged,
+  isObject,
+  isIntegerKey,
+  isSymbol,
+  toRawType,
+  extend,
 };
