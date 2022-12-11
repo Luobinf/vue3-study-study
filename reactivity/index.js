@@ -30,7 +30,6 @@ const arrayInstrumentations = {
 ;["includes", "indexOf", "lastIndexOf"].forEach((method) => {
   const originMethod = Array.prototype.includes;
   arrayInstrumentations[method] = function (...args) {
-    const originMethod = Array.prototype.includes;
     let res = originMethod.apply(this, args);
 
     // res 为 false 表示在代理对象中找不到，接着再去原始对数组中查找值在不在
