@@ -1,12 +1,18 @@
 // 1. 副作用函数要与操作目标字段建立明确的联系。例如我在副作用函数中读取了obj.xx 的字段，我应该将 obj 上的 xx 字段与副作用函数建立联系。
 
-let { hasOwn, hasChanged, isObject, isIntegerKey, isSymbol } = require("../shared/index");
+let {
+  hasOwn,
+  hasChanged,
+  isObject,
+  isIntegerKey,
+  isSymbol,
+} = require("../shared/index");
 
 let activeEffect = undefined;
 let effectStack = [];
 
 let bucket = new WeakMap();
-
+const reactiveMap = new WeakMap();
 const ITERABLE_KEY = Symbol("iterable_key");
 
 const TriggerOpTypes = {
@@ -14,7 +20,27 @@ const TriggerOpTypes = {
   ADD: "add",
   DELETE: "delete",
 };
+
 const RAW = "__IS_RAW__";
+
+const arrayInstrumentations = {
+  
+}
+
+;["includes", "indexOf", "lastIndexOf"].forEach((method) => {
+  const originMethod = Array.prototype.includes;
+  arrayInstrumentations[method] = function (...args) {
+    const originMethod = Array.prototype.includes;
+    let res = originMethod.apply(this, args);
+
+    // res 为 false 表示在代理对象中找不到，接着再去原始对数组中查找值在不在
+    if (res === false || res === -1) {
+      res = originMethod.apply(this[RAW], args);
+    }
+
+    return res;
+  };
+});
 
 function effect(fn, options = {}) {
   const effectFn = () => {
@@ -60,6 +86,11 @@ function createReactive(target, isShallow = false, isReadonly = false) {
     get(target, key, receiver) {
       if (key === RAW) {
         return target;
+      }
+
+      // 数组方法重写
+      if (Array.isArray(target) && arrayInstrumentations.hasOwnProperty(key)) {
+        return Reflect.get(arrayInstrumentations, key, receiver);
       }
 
       const res = Reflect.get(target, key, receiver);
@@ -132,8 +163,8 @@ function createReactive(target, isShallow = false, isReadonly = false) {
 
     ownKeys(target) {
       const res = Reflect.ownKeys(target);
-      if( Array.isArray(target) ) {
-        track(target, 'length');
+      if (Array.isArray(target)) {
+        track(target, "length");
       } else {
         // 非数组可迭代对象，依赖收集
         track(target, ITERABLE_KEY);
@@ -143,8 +174,14 @@ function createReactive(target, isShallow = false, isReadonly = false) {
   });
 }
 
-function reactive(data) {
-  return createReactive(data);
+function reactive(target) {
+  const existionProxy = reactiveMap.get(target);
+  if (existionProxy) return existionProxy;
+
+  const proxy = createReactive(target);
+  reactiveMap.set(target, proxy);
+
+  return proxy;
 }
 
 function shallowReactive(data) {
@@ -183,12 +220,12 @@ function trigger(target, key, type, newVal, oldVal) {
   const depsMap = bucket.get(target);
   if (!depsMap) return;
 
-  let deps = []
+  let deps = [];
 
-  if(Array.isArray(target) && key === 'length') {
+  if (Array.isArray(target) && key === "length") {
     // 取出索引值大于等于 length 长度的副作用依赖
-    for(let index = Number(oldVal); index >= Number(newVal); index--) {
-      deps.push( depsMap.get(`${index}`) )
+    for (let index = Number(oldVal); index >= Number(newVal); index--) {
+      deps.push(depsMap.get(`${index}`));
     }
   }
 
@@ -197,50 +234,47 @@ function trigger(target, key, type, newVal, oldVal) {
   //遗留的副作用函数进行影响了。
 
   // store all deps for SET | ADD | DELETE operate
-  if(key !== undefined) {
-    deps.push(depsMap.get(key))
+  if (key !== undefined) {
+    deps.push(depsMap.get(key));
   }
 
   // 只有当 ADD 类型时（表示新增属性），才将与 ITERABLE_KEY 相关联的副作用函数也添加到 deps 中去。
   switch (type) {
     case TriggerOpTypes.ADD:
-      if(!Array.isArray(target)) {
-        deps.push(depsMap.get(ITERABLE_KEY))
-      } else if(Array.isArray(target) && isIntegerKey(key)) {
+      if (!Array.isArray(target)) {
+        deps.push(depsMap.get(ITERABLE_KEY));
+      } else if (Array.isArray(target) && isIntegerKey(key)) {
         // new index added to array -> length changes
-        deps.push(depsMap.get('length'))
+        deps.push(depsMap.get("length"));
       }
       break;
     case TriggerOpTypes.DELETE:
-      if(!Array.isArray(target)) {
-        deps.push(depsMap.get(ITERABLE_KEY))
+      if (!Array.isArray(target)) {
+        deps.push(depsMap.get(ITERABLE_KEY));
       }
-      break
+      break;
     case TriggerOpTypes.SET:
-
       break;
   }
-  
-  const effects = []
-  for(const dep of deps) {
-    if(dep) {
-      effects.push(...dep)
+
+  const effects = [];
+  for (const dep of deps) {
+    if (dep) {
+      effects.push(...dep);
     }
   }
 
-  triggerEffects(createDep(effects))
+  triggerEffects(createDep(effects));
 }
 
-
 function triggerEffects(effects) {
-  for(const effect of effects) {
-    triggerEffect(effect)
+  for (const effect of effects) {
+    triggerEffect(effect);
   }
 }
 
-
 function triggerEffect(effect) {
-  if(effect !== activeEffect) {
+  if (effect !== activeEffect) {
     const { scheduler } = effect.options;
     if (scheduler) {
       // 支持可调度性：副作用函数的执行时机
@@ -253,8 +287,8 @@ function triggerEffect(effect) {
 }
 
 function createDep(effects) {
-  const dep = new Set(effects)
-  return dep
+  const dep = new Set(effects);
+  return dep;
 }
 
 module.exports = {
