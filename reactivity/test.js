@@ -11,14 +11,24 @@ newSet.forEach((item) => {
 const { render } = require("vue");
 const { reactive, effect } = require("./index");
 
+const arr = reactive([])
 
-const obj = {}
+effect(() => {
+	arr.push(1)
+})
 
-const arr = reactive([obj])
+// effect(() => {
+// 	arr.push(1)
+// })
 
-console.log( arr.includes(arr[0]) ) // 得到的是 false，为啥不是 true？因为 arr 是一个嵌套对象，通过 arr.includes 返回 arr[0] 的时候获取的代理对象与单独通过 arr[0] 的时候获取返回的是一个新的 proxy 对象。 p.125
 
-console.log( arr.includes( obj ) ) // false
+// const obj = {}
+
+// const arr = reactive([obj])
+
+// console.log( arr.includes(arr[0]) ) // 得到的是 false，为啥不是 true？因为 arr 是一个嵌套对象，通过 arr.includes 返回 arr[0] 的时候获取的代理对象与单独通过 arr[0] 的时候获取返回的是一个新的 proxy 对象。 p.125
+
+// console.log( arr.includes( obj ) ) // false
 
 // const list = reactive([23,90])
 

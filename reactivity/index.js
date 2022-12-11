@@ -10,6 +10,7 @@ let {
 
 let activeEffect = undefined;
 let effectStack = [];
+let shouldTrack = true;
 
 let bucket = new WeakMap();
 const reactiveMap = new WeakMap();
@@ -23,23 +24,46 @@ const TriggerOpTypes = {
 
 const RAW = "__IS_RAW__";
 
-const arrayInstrumentations = {
-  
+const arrayInstrumentations = createArrayInstrumentations();
+
+function pauseTracking() {
+  shouldTrack = false;
 }
 
-;["includes", "indexOf", "lastIndexOf"].forEach((method) => {
-  const originMethod = Array.prototype.includes;
-  arrayInstrumentations[method] = function (...args) {
-    let res = originMethod.apply(this, args);
+function resetTracking() {
+  shouldTrack = true;
+}
 
-    // res 为 false 表示在代理对象中找不到，接着再去原始对数组中查找值在不在
-    if (res === false || res === -1) {
-      res = originMethod.apply(this[RAW], args);
-    }
+function createArrayInstrumentations() {
+  const instrumentations = {};
 
-    return res;
-  };
-});
+  ["includes", "indexOf", "lastIndexOf"].forEach((method) => {
+    const originMethod = Array.prototype[method];
+    instrumentations[method] = function (...args) {
+      let res = originMethod.apply(this, args);
+
+      // res 为 false 表示在代理对象中找不到，接着再去原始对数组中查找值在不在
+      if (res === false || res === -1) {
+        res = originMethod.apply(this[RAW], args);
+      }
+
+      return res;
+    };
+  });
+
+  // 对于某些方法调用会隐式的修改数组长度，导致 length 被收集，可能在某些情况下会导致无限循环(#2137)。
+  ["push", "pop", "shift", "unshift", "splice"].forEach((method) => {
+    const originMethod = Array.prototype[method];
+    instrumentations[method] = function (...args) {
+      pauseTracking();
+      let res = originMethod.apply(this, args);
+      resetTracking();
+      return res;
+    };
+  });
+
+  return instrumentations
+}
 
 function effect(fn, options = {}) {
   const effectFn = () => {
@@ -198,7 +222,7 @@ function shallowReadonly(data) {
 }
 
 function track(target, key) {
-  if (!activeEffect) return;
+  if (!activeEffect || !shouldTrack) return;
 
   let depsMap = bucket.get(target);
   if (!depsMap) {
