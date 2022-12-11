@@ -62,7 +62,7 @@ function createArrayInstrumentations() {
     };
   });
 
-  return instrumentations
+  return instrumentations;
 }
 
 function effect(fn, options = {}) {
@@ -250,34 +250,34 @@ function trigger(target, key, type, newVal, oldVal) {
     for (let index = Number(oldVal); index >= Number(newVal); index--) {
       deps.push(depsMap.get(`${index}`));
     }
-  }
+  } else {
+    // const iterableKeyDeps = depsMap.get(ITERABLE_KEY);
+    // 每次副作用函数执行时，将所有与之关联的依赖集合中删除掉，等到副作用函数重新执行后，又会重新建立联系，这样在新的联系中就不会有
+    //遗留的副作用函数进行影响了。
 
-  // const iterableKeyDeps = depsMap.get(ITERABLE_KEY);
-  // 每次副作用函数执行时，将所有与之关联的依赖集合中删除掉，等到副作用函数重新执行后，又会重新建立联系，这样在新的联系中就不会有
-  //遗留的副作用函数进行影响了。
+    // store all deps for SET | ADD | DELETE operate
+    if (key !== undefined) {
+      deps.push(depsMap.get(key));
+    }
 
-  // store all deps for SET | ADD | DELETE operate
-  if (key !== undefined) {
-    deps.push(depsMap.get(key));
-  }
-
-  // 只有当 ADD 类型时（表示新增属性），才将与 ITERABLE_KEY 相关联的副作用函数也添加到 deps 中去。
-  switch (type) {
-    case TriggerOpTypes.ADD:
-      if (!Array.isArray(target)) {
-        deps.push(depsMap.get(ITERABLE_KEY));
-      } else if (Array.isArray(target) && isIntegerKey(key)) {
-        // new index added to array -> length changes
-        deps.push(depsMap.get("length"));
-      }
-      break;
-    case TriggerOpTypes.DELETE:
-      if (!Array.isArray(target)) {
-        deps.push(depsMap.get(ITERABLE_KEY));
-      }
-      break;
-    case TriggerOpTypes.SET:
-      break;
+    // 只有当 ADD 类型时（表示新增属性），才将与 ITERABLE_KEY 相关联的副作用函数也添加到 deps 中去。
+    switch (type) {
+      case TriggerOpTypes.ADD:
+        if (!Array.isArray(target)) {
+          deps.push(depsMap.get(ITERABLE_KEY));
+        } else if (Array.isArray(target) && isIntegerKey(key)) {
+          // new index added to array -> length changes
+          deps.push(depsMap.get("length"));
+        }
+        break;
+      case TriggerOpTypes.DELETE:
+        if (!Array.isArray(target)) {
+          deps.push(depsMap.get(ITERABLE_KEY));
+        }
+        break;
+      case TriggerOpTypes.SET:
+        break;
+    }
   }
 
   const effects = [];
