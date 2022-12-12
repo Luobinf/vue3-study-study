@@ -13,9 +13,8 @@ const {
   isSymbol,
 	extend
 } = require("../shared/index");
-const { TriggerOpTypes, ITERABLE_KEY } = require("./operation");
-
-const RAW = "__IS_RAW__";
+const { TriggerOpTypes, RAW } = require("./operation");
+const { ITERABLE_KEY } = require('./effect')
 
 const get = createGetter();
 const shallowGet = createGetter(false, true);

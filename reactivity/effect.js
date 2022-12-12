@@ -1,6 +1,6 @@
 const { createDep } = require("./dep");
-const { TriggerOpTypes, ITERABLE_KEY } = require("./operation");
-const { isIntegerKey } = require("../shared/index");
+const { TriggerOpTypes } = require("./operation");
+const { isIntegerKey, isArray } = require("../shared/index");
 
 let activeEffect = undefined;
 let effectStack = [];
@@ -8,6 +8,8 @@ let targetMap = new WeakMap();
 
 
 let shouldTrack = true;
+
+const ITERABLE_KEY = Symbol("iterable_key");
 
 function effect(fn, options = {}) {
   const effectFn = () => {
@@ -68,7 +70,7 @@ function trigger(target, key, type, newVal, oldVal) {
 
   let deps = [];
 
-  if (Array.isArray(target) && key === "length") {
+  if (isArray(target) && key === "length") {
     // 取出索引值大于等于 length 长度的副作用依赖
     for (let index = Number(oldVal); index >= Number(newVal); index--) {
       deps.push(depsMap.get(`${index}`));
@@ -86,15 +88,15 @@ function trigger(target, key, type, newVal, oldVal) {
     // 只有当 ADD 类型时（表示新增属性），才将与 ITERABLE_KEY 相关联的副作用函数也添加到 deps 中去。
     switch (type) {
       case TriggerOpTypes.ADD:
-        if (!Array.isArray(target)) {
+        if (!isArray(target)) {
           deps.push(depsMap.get(ITERABLE_KEY));
-        } else if (Array.isArray(target) && isIntegerKey(key)) {
+        } else if (isArray(target) && isIntegerKey(key)) {
           // new index added to array -> length changes
           deps.push(depsMap.get("length"));
         }
         break;
       case TriggerOpTypes.DELETE:
-        if (!Array.isArray(target)) {
+        if (!isArray(target)) {
           deps.push(depsMap.get(ITERABLE_KEY));
         }
         break;
@@ -146,4 +148,5 @@ module.exports = {
   effect,
   pauseTracking,
   resetTracking,
+  ITERABLE_KEY
 };

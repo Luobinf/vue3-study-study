@@ -24,6 +24,10 @@ function toRawType(source) {
 
 const extend = Object.assign;
 
+function isArray(source) {
+	return Array.isArray(source)
+}
+
 module.exports = {
   hasOwn,
   hasChanged,
@@ -32,4 +36,5 @@ module.exports = {
   isSymbol,
   toRawType,
   extend,
+	isArray
 };

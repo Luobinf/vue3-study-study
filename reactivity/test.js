@@ -2,26 +2,19 @@
 const { reactive, effect } = require("./index");
 
 
-// const obj = new Proxy(ss, {
-// 	get(target, key, receiver) {
-// 		if(key === 'size') {
-// 			return Reflect.get(target, key, target)
-// 		}
-// 		return target[key].bind(target)
-// 	},
-// 	deleteProperty(target) {
-// 		console.log(888)
-// 	}
+const s = new Set([90])
+const p = reactive(s)
+
+// p.add(90)
+
+console.log(p.size)
+
+
+// const arr = reactive([])
+// effect(() => {s
+// 	console.log(arr[0])
 // })
-
-// console.log( obj.size ) // 报错
-
-
-const arr = reactive([])
-effect(() => {
-	console.log(arr[0])
-})
-arr.push(1)
+// arr.push(1)
 // arr.length = 90
 // effect(() => {
 // 	arr.push(1)

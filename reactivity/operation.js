@@ -4,9 +4,10 @@ const TriggerOpTypes = {
   DELETE: "delete",
 };
 
-const ITERABLE_KEY = Symbol("iterable_key");
+
+const RAW = "__IS_RAW__";
 
 module.exports = {
   TriggerOpTypes,
-  ITERABLE_KEY
+  RAW
 };
