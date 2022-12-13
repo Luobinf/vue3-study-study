@@ -1,13 +1,30 @@
 
 const { reactive, effect } = require("./index");
 
+// const { reactive, effect } = require("@vue/reactivity");
 
-const s = new Set([90])
-const p = reactive(s)
 
-// p.add(90)
+const p = reactive(new Map([['key', 1]]))
 
-console.log(p.size)
+effect(() => {
+	console.log(p.get('key'))
+})
+
+p.set('key', 2)
+
+
+
+// const s = new Set([90])
+// const p = reactive(s)
+
+
+// effect(() => {
+// 	console.log(p.size)
+// })
+
+// p.add(900)
+
+// console.log(p.size)
 
 
 // const arr = reactive([])

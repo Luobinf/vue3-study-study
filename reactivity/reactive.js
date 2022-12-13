@@ -7,7 +7,7 @@ const {
   readonlyHandlers,
   shallowReadonlyHandlers,
 } = require("./baseHandlers");
-const { collectionHandlers } = require("./collectionHandlers");
+const { mutableCollectionHandlers } = require("./collectionHandlers");
 
 const reactiveMap = new WeakMap();
 const shallowReactiveMap = new WeakMap();
@@ -76,7 +76,7 @@ function reactive(target) {
     target,
     false,
     mutableHandlers,
-    collectionHandlers,
+    mutableCollectionHandlers,
     reactiveMap
   );
 }
@@ -86,7 +86,7 @@ function shallowReactive(target) {
     target,
     false,
     shallowReactiveHandlers,
-    collectionHandlers,
+    mutableCollectionHandlers,
     shallowReactiveMap
   );
 }
@@ -97,7 +97,7 @@ function readonly(target) {
     target,
     true,
     readonlyHandlers,
-    collectionHandlers,
+    mutableCollectionHandlers,
     readonlyMap
   );
 }
@@ -107,7 +107,7 @@ function shallowReadonly(target) {
     target,
     true,
     shallowReadonlyHandlers,
-    collectionHandlers,
+    mutableCollectionHandlers,
     shallowReadonlyMap
   );
 }
