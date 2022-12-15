@@ -5,9 +5,6 @@ const TriggerOpTypes = {
 };
 
 
-const RAW = "__IS_RAW__";
-
 module.exports = {
   TriggerOpTypes,
-  RAW
 };

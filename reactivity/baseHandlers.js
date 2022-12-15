@@ -1,9 +1,10 @@
-const { reactive, readonly} = require("./reactive");
+const { reactive, readonly } = require("./reactive");
 const {
   track,
   trigger,
   pauseTracking,
   resetTracking,
+	ITERABLE_KEY
 } = require("./effect");
 const {
   hasOwn,
@@ -13,8 +14,8 @@ const {
   isSymbol,
 	extend
 } = require("../shared/index");
-const { TriggerOpTypes, RAW } = require("./operation");
-const { ITERABLE_KEY } = require('./effect')
+const { TriggerOpTypes } = require("./operation");
+const { ReactiveFlags } = require('./util')
 
 const get = createGetter();
 const shallowGet = createGetter(false, true);
@@ -34,7 +35,7 @@ function createArrayInstrumentations() {
 
       // res 为 false 表示在代理对象中找不到，接着再去原始对数组中查找值在不在
       if (res === false || res === -1) {
-        res = originMethod.apply(this[RAW], args);
+        res = originMethod.apply(this[ReactiveFlags.RAW], args);
       }
 
       return res;
@@ -88,7 +89,7 @@ function createGetter(isReadonly = false, isShallow = false) {
   // 第一次读取时：receiver 是 target 的代理对象，第二次读取时 receiver 不是 target 的代理对象。
   // 如何确定 receiver 是 target 的代理对象？
   return function get(target, key, receiver) {
-    if (key === RAW) {
+    if (key === ReactiveFlags.RAW) {
       return target;
     }
 
@@ -130,7 +131,7 @@ function createSetter() {
 
     // 触发依赖
     // 说明 receiver 是 target 的代理对象，避免触发因原型引起的副作用函数的更新
-    if (target === receiver[RAW]) {
+    if (target === receiver[ReactiveFlags.RAW]) {
       if (!hadKey) {
         trigger(target, key, TriggerOpTypes.ADD);
       } else if (hasChanged(oldVal, val)) {

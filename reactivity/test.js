@@ -4,13 +4,31 @@ const { reactive, effect } = require("./index");
 // const { reactive, effect } = require("@vue/reactivity");
 
 
-const p = reactive(new Map([['key', 1]]))
+// test======
+const m = new Map()
+const p1 = reactive(m)
+const p2 = reactive( new Map() )
+
+p1.set('p2', p2)
 
 effect(() => {
-	console.log(p.get('key'))
+	// 通过原始数据 m 访问 p2
+	console.log(m.get('p2').size)
 })
 
-p.set('key', 2)
+// 通过原始数据 m 设置 p2, 但是副作用函数仍然会执行，理论上来说不应该去执行
+m.get('p2').set('foo', 1)
+
+
+// test======
+// const p = reactive(new Map([['key', 1]]))
+
+// effect(() => {
+// 	// console.log(p.get('key'))
+// 	console.log(p.size)
+// })
+
+// p.set('key2', 2)
 
 
 

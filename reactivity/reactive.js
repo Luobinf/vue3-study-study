@@ -20,6 +20,7 @@ const TargetType = {
   COLLECTION: 2,
 };
 
+
 function targetTypeMap(rawType) {
   switch (rawType) {
     case "Object":
@@ -111,6 +112,7 @@ function shallowReadonly(target) {
     shallowReadonlyMap
   );
 }
+
 
 module.exports = {
   reactive,
