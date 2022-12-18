@@ -5,19 +5,63 @@ const { reactive, effect } = require("./index");
 
 
 // test======
-const m = new Map()
+const m = new Set()
 const p1 = reactive(m)
-const p2 = reactive( new Map() )
+const p2 = reactive( new Set([12]) )
 
-p1.set('p2', p2)
+p1.add(p2)
 
 effect(() => {
 	// 通过原始数据 m 访问 p2
-	console.log(m.get('p2').size)
+	m.forEach(item => {
+		console.log(item.size)
+	})
 })
 
+debugger
 // 通过原始数据 m 设置 p2, 但是副作用函数仍然会执行，理论上来说不应该去执行
-m.get('p2').set('foo', 1)
+m.forEach(item => {
+	item.delete(12)
+})
+
+
+
+// test======
+// const m = new Set()
+// const p1 = reactive(m)
+// const p2 = reactive( new Set([12]) )
+
+// p1.add(p2)
+
+// effect(() => {
+// 	// 通过原始数据 m 访问 p2
+// 	m.forEach(item => {
+// 		console.log(item.size)
+// 	})
+// })
+
+// debugger
+// // 通过原始数据 m 设置 p2, 但是副作用函数仍然会执行，理论上来说不应该去执行
+// m.forEach(item => {
+// 	item.add(9999)
+// })
+
+
+
+// test======
+// const m = new Map()
+// const p1 = reactive(m)
+// const p2 = reactive( new Map() )
+
+// p1.set('p2', p2)
+
+// effect(() => {
+// 	// 通过原始数据 m 访问 p2
+// 	console.log(m.get('p2').size)
+// })
+
+// // 通过原始数据 m 设置 p2, 但是副作用函数仍然会执行，理论上来说不应该去执行
+// m.get('p2').set('foo', 1)
 
 
 // test======
@@ -162,5 +206,3 @@ m.get('p2').set('foo', 1)
 // })
 
 // child.name = 90
-
-
