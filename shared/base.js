@@ -28,7 +28,11 @@ function isArray(source) {
 	return Array.isArray(source)
 }
 
-module.exports = {
+function isMap(source) {
+  return Object.prototype.toString.call(source) === "[object Map]";
+}
+
+export {
   hasOwn,
   hasChanged,
   isObject,
@@ -36,5 +40,6 @@ module.exports = {
   isSymbol,
   toRawType,
   extend,
-	isArray
+	isArray,
+	isMap
 };

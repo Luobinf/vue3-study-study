@@ -1,6 +1,11 @@
-const base = require('./base')
-
-
-module.exports = {
-    ...base
-}
+export {
+  hasOwn,
+  hasChanged,
+  isObject,
+  isIntegerKey,
+  isSymbol,
+  toRawType,
+  extend,
+  isArray,
+  isMap
+} from "./base";

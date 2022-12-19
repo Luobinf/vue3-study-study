@@ -1,13 +1,8 @@
 // 1. 副作用函数要与操作目标字段建立明确的联系。例如我在副作用函数中读取了obj.xx 的字段，我应该将 obj 上的 xx 字段与副作用函数建立联系。
 
-const { isObject, toRawType } = require("../shared/index");
-const {
-  mutableHandlers,
-  shallowReactiveHandlers,
-  readonlyHandlers,
-  shallowReadonlyHandlers,
-} = require("./baseHandlers");
-const { mutableCollectionHandlers } = require("./collectionHandlers");
+import { isObject, toRawType } from "../shared/index";
+import { mutableHandlers, shallowReactiveHandlers, readonlyHandlers, shallowReadonlyHandlers } from "./baseHandlers";
+import { mutableCollectionHandlers } from "./collectionHandlers";
 
 const reactiveMap = new WeakMap();
 const shallowReactiveMap = new WeakMap();
@@ -114,9 +109,15 @@ function shallowReadonly(target) {
 }
 
 
-module.exports = {
+const toReactive = (value) => {
+	return isObject(value) ? reactive(value) : value
+}
+
+
+export {
   reactive,
   shallowReactive,
   readonly,
   shallowReadonly,
+	toReactive
 };

@@ -1,4 +1,4 @@
-const { effect } = require('./index')
+import { effect } from './index';
 
 function computed(getterOrOptions) {
   // 用于缓存上一次的计算结果
@@ -46,4 +46,4 @@ function computed(getterOrOptions) {
 }
 
 
-module.exports = computed
+export default computed

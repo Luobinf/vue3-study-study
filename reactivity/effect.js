@@ -1,11 +1,10 @@
-const { createDep } = require("./dep");
-const { TriggerOpTypes } = require("./operation");
-const { isIntegerKey, isArray } = require("../shared/index");
+import { createDep } from "./dep.js";
+import { TriggerOpTypes } from "./operation";
+import { isIntegerKey, isArray, isMap } from "../shared/index";
 
 let activeEffect = undefined;
 let effectStack = [];
 let targetMap = new WeakMap();
-
 
 let shouldTrack = true;
 
@@ -101,6 +100,9 @@ function trigger(target, key, type, newVal, oldVal) {
         }
         break;
       case TriggerOpTypes.SET:
+        if (isMap(target)) {
+          deps.push(depsMap.get(ITERABLE_KEY));
+        }
         break;
     }
   }
@@ -142,11 +144,4 @@ function resetTracking() {
   shouldTrack = true;
 }
 
-module.exports = {
-  track,
-  trigger,
-  effect,
-  pauseTracking,
-  resetTracking,
-  ITERABLE_KEY
-};
+export { track, trigger, effect, pauseTracking, resetTracking, ITERABLE_KEY };

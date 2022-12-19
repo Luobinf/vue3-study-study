@@ -3,6 +3,6 @@ function createDep(effects) {
   return dep;
 }
 
-module.exports = {
+export {
   createDep,
 };

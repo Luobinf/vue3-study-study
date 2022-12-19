@@ -5,6 +5,6 @@ const TriggerOpTypes = {
 };
 
 
-module.exports = {
+export {
   TriggerOpTypes,
 };

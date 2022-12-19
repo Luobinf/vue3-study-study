@@ -1,28 +1,46 @@
 
-const { reactive, effect } = require("./index");
+const { reactive, effect } = require("./index.js");
 
 // const { reactive, effect } = require("@vue/reactivity");
 
 
 // test======
-const m = new Set()
-const p1 = reactive(m)
-const p2 = reactive( new Set([12]) )
+const key = { key : 12}
+const m = new Map([
+	[key, new Set([23,34])],
+])
 
-p1.add(p2)
+const p = reactive(m)
 
-effect(() => {
-	// 通过原始数据 m 访问 p2
-	m.forEach(item => {
-		console.log(item.size)
-	})
-})
+// effect(() => {
+// 	p.forEach((value, key, m) => {
+// 		console.log(value.size)
+// 	})
+// })
 
-debugger
-// 通过原始数据 m 设置 p2, 但是副作用函数仍然会执行，理论上来说不应该去执行
-m.forEach(item => {
-	item.delete(12)
-})
+// p.set({ key : 13}, new Set([123]))
+
+// p.get(key).delete(12)
+
+// test======
+// const m = new Set()
+// const p1 = reactive(m)
+// const p2 = reactive( new Set([12]) )
+
+// p1.add(p2)
+
+// effect(() => {
+// 	// 通过原始数据 m 访问 p2
+// 	m.forEach(item => {
+// 		console.log(item.size)
+// 	})
+// })
+
+// debugger
+// // 通过原始数据 m 设置 p2, 但是副作用函数仍然会执行，理论上来说不应该去执行
+// m.forEach(item => {
+// 	item.delete(12)
+// })
 
 
 

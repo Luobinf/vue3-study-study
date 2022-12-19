@@ -1,20 +1,12 @@
-const { effect } = require("./effect");
-const {
+export {
   reactive,
   shallowReactive,
   readonly,
   shallowReadonly,
-} = require("./reactive");
+} from "./reactive";
 
 
-
-module.exports = {
-  effect,
-  reactive,
-  shallowReactive,
-  readonly,
-  shallowReadonly,
-};
+export { effect } from './effect'
 
 //  计算属性值会基于其响应式依赖被缓存。一个计算属性仅会在其响应式依赖更新时才重新计算。
 // 计算属性应该如何实现？？

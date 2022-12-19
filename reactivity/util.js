@@ -8,7 +8,7 @@ function toRaw(observed) {
   return raw ? toRaw(raw) : observed;
 }
 
-module.exports = {
+export {
   ReactiveFlags,
   toRaw,
 };

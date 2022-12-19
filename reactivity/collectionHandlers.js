@@ -1,7 +1,8 @@
-const { hasOwn, hasChanged, isObject } = require("../shared/index");
-const { track, trigger, ITERABLE_KEY } = require("./effect");
-const { TriggerOpTypes } = require("./operation");
-const { ReactiveFlags, toRaw } = require('./util')
+import { toReactive } from "./reactive";
+import { hasOwn, hasChanged } from "../shared/index";
+import { track, trigger, ITERABLE_KEY } from "./effect";
+import { TriggerOpTypes } from "./operation";
+import { ReactiveFlags, toRaw } from './util';
 
 function size(target) {
   target = toRaw(target);
@@ -41,7 +42,7 @@ function get(key) {
   if (hadKey) {
     const result = target.get(key);
     // 若获取到的结果是一个对象，则需要将其转化成响应式数据
-    return isObject(result) ? reactive(result) : result;
+    return toReactive(result);
   }
 }
 
@@ -61,6 +62,21 @@ function set(key, value) {
 	}
 }
 
+
+function createForEach(isReadonly, isShallow) {
+	return function forEach (callback, thisArg) {
+		const target = toRaw(this)
+		const wrap = (val) => toReactive(val)
+		track(target, ITERABLE_KEY) // 通过 ITERABLE_KEY 收集当前 forEach 方法外的副作用函数
+		target.forEach((value, key) => {
+			// 为什么 calback 需要重写 ？
+			// the value received should be a corresponding reactive/readonly。
+			callback && callback.call(thisArg, wrap(value), wrap(key), this)
+		})
+	}
+}
+
+
 function createInstrumentations() {
   const mutableInstrumentations = {
     add,
@@ -70,6 +86,7 @@ function createInstrumentations() {
     delete: deleteEntry,
     get,
     set,
+		forEach: createForEach()
   };
 
   return {
@@ -99,6 +116,8 @@ const mutableCollectionHandlers = {
   get: createInstrumentationGetter(),
 };
 
-module.exports = {
+export {
   mutableCollectionHandlers,
 };
+
+

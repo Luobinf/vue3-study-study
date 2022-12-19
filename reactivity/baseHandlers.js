@@ -1,21 +1,8 @@
-const { reactive, readonly } = require("./reactive");
-const {
-  track,
-  trigger,
-  pauseTracking,
-  resetTracking,
-	ITERABLE_KEY
-} = require("./effect");
-const {
-  hasOwn,
-  hasChanged,
-  isObject,
-  isIntegerKey,
-  isSymbol,
-	extend
-} = require("../shared/index");
-const { TriggerOpTypes } = require("./operation");
-const { ReactiveFlags } = require('./util')
+import { reactive, readonly } from "./reactive";
+import { track, trigger, pauseTracking, resetTracking, ITERABLE_KEY } from "./effect";
+import { hasOwn, hasChanged, isObject, isIntegerKey, isSymbol, extend } from "../shared/index";
+import { TriggerOpTypes } from "./operation";
+import { ReactiveFlags } from './util';
 
 const get = createGetter();
 const shallowGet = createGetter(false, true);
@@ -170,7 +157,7 @@ function ownKeys(target) {
   return res;
 }
 
-module.exports = {
+export {
   mutableHandlers,
   shallowReactiveHandlers,
   readonlyHandlers,
