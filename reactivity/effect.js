@@ -9,6 +9,7 @@ let targetMap = new WeakMap();
 let shouldTrack = true;
 
 const ITERABLE_KEY = Symbol("iterable_key");
+const MAP_KEY_ITERATE_KEY = Symbol('MAP_KEY_ITERATE_KEY')
 
 function effect(fn, options = {}) {
   const effectFn = () => {
@@ -89,6 +90,9 @@ function trigger(target, key, type, newVal, oldVal) {
       case TriggerOpTypes.ADD:
         if (!isArray(target)) {
           deps.push(depsMap.get(ITERABLE_KEY));
+          if(isMap(target)) {
+            deps.push(depsMap.get(MAP_KEY_ITERATE_KEY));
+          }
         } else if (isArray(target) && isIntegerKey(key)) {
           // new index added to array -> length changes
           deps.push(depsMap.get("length"));
@@ -97,6 +101,9 @@ function trigger(target, key, type, newVal, oldVal) {
       case TriggerOpTypes.DELETE:
         if (!isArray(target)) {
           deps.push(depsMap.get(ITERABLE_KEY));
+          if(isMap(target)) {
+            deps.push(depsMap.get(MAP_KEY_ITERATE_KEY));
+          }
         }
         break;
       case TriggerOpTypes.SET:
@@ -144,4 +151,4 @@ function resetTracking() {
   shouldTrack = true;
 }
 
-export { track, trigger, effect, pauseTracking, resetTracking, ITERABLE_KEY };
+export { track, trigger, effect, pauseTracking, resetTracking, ITERABLE_KEY, MAP_KEY_ITERATE_KEY };

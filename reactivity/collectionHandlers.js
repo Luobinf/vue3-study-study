@@ -1,8 +1,9 @@
 import { toReactive } from "./reactive";
-import { hasOwn, hasChanged } from "../shared/index";
-import { track, trigger, ITERABLE_KEY } from "./effect";
+import { hasOwn, hasChanged, isMap } from "../shared/index";
+import { track, trigger, ITERABLE_KEY, MAP_KEY_ITERATE_KEY } from "./effect";
 import { TriggerOpTypes } from "./operation";
 import { ReactiveFlags, toRaw } from './util';
+
 
 function size(target) {
   target = toRaw(target);
@@ -77,6 +78,35 @@ function createForEach(isReadonly, isShallow) {
 }
 
 
+function createIterableMethod(method) {
+	return function (...args) {
+		const target = this[ReactiveFlags.RAW]
+		const targetIsMap = isMap(target)
+		// Map 的默认迭代器是 entries 方法，Set 的默认迭代器是 values 方法。
+		const isPair = method === 'entries' || (method === Symbol.iterator && targetIsMap)
+		const isKeyOnly = method === 'keys' && targetIsMap
+		const innerIterator = target[method](...args)
+	
+		const wrap = (val) => toReactive(val)
+	
+		track(target, isKeyOnly ? MAP_KEY_ITERATE_KEY : ITERABLE_KEY)
+	
+		return {
+			next() {
+				const { value, done } = innerIterator.next()
+				return {
+					value: value ? ( isPair ? [wrap(value[0]), wrap(value[1])] : wrap(value) ): value,
+					done
+				}
+			},
+			// 可迭代协议，表示对象使用 for....of迭代时，会使用 Symbol.iterator 方法进行迭代
+			[Symbol.iterator]() {
+				return this
+			}
+		}
+	}
+}
+
 function createInstrumentations() {
   const mutableInstrumentations = {
     add,
@@ -86,8 +116,14 @@ function createInstrumentations() {
     delete: deleteEntry,
     get,
     set,
-		forEach: createForEach()
+		forEach: createForEach(),
   };
+
+	const iteratorMethods = ['values', 'keys', 'entries', Symbol.iterator]
+
+	iteratorMethods.forEach(method => {
+		mutableInstrumentations[method] = createIterableMethod(method)
+	})
 
   return {
     mutableInstrumentations,
