@@ -8,6 +8,8 @@ export {
 
 export { effect } from './effect'
 
+export { ref, isRef, toRefs, toRef } from './ref'
+
 //  计算属性值会基于其响应式依赖被缓存。一个计算属性仅会在其响应式依赖更新时才重新计算。
 // 计算属性应该如何实现？？
 
