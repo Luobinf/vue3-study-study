@@ -1,4 +1,5 @@
 import { reactive, effect, ref, isRef, toRef, toRefs } from "../index";
+import { shallowRef } from "../ref";
 
 describe("reactivity/ref", () => {
   describe("ref", () => {
@@ -175,5 +176,32 @@ describe("reactivity/ref", () => {
       state.foo++;
       console.log(fooRef.value); // 3
     });
+
+    it('test', () => {
+      const shallowArray = shallowRef([
+        1,2,3,4,5,6
+      ])
+
+     let dummy = 0
+      effect(() => {
+        dummy += 1
+        console.log(shallowArray.value)
+      })
+
+      expect(dummy).toBe(1)
+
+      // 不会触发响应式更新 
+      shallowArray.value.push(90)
+
+      // 不会触发响应式更新
+      shallowArray.value[0] = 90
+    
+    //  触发了响应式更新
+      shallowArray.value = [] // 触发了无限递归循环问题
+
+      expect(dummy).toBe(2)
+
+    })
+    
   });
 });

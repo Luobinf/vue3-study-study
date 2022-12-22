@@ -2,14 +2,14 @@ import { createDep } from "./dep.js";
 import { TriggerOpTypes } from "./operation";
 import { isIntegerKey, isArray, isMap } from "../shared/index";
 
-let activeEffect = undefined;
+export let activeEffect = undefined;
 let effectStack = [];
 let targetMap = new WeakMap();
 
-let shouldTrack = true;
+export let shouldTrack = true;
 
 const ITERABLE_KEY = Symbol("iterable_key");
-const MAP_KEY_ITERATE_KEY = Symbol('MAP_KEY_ITERATE_KEY')
+const MAP_KEY_ITERATE_KEY = Symbol("MAP_KEY_ITERATE_KEY");
 
 function effect(fn, options = {}) {
   const effectFn = () => {
@@ -47,21 +47,25 @@ function cleanup(effectFn) {
 }
 
 function track(target, key) {
-  if (!activeEffect || !shouldTrack) return;
+  if (shouldTrack && activeEffect) {
+    let depsMap = targetMap.get(target);
+    if (!depsMap) {
+      targetMap.set(target, (depsMap = new Map()));
+    }
+    let deps = depsMap.get(key);
+    if (!deps) {
+      depsMap.set(key, (deps = new Set()));
+    }
 
-  let depsMap = targetMap.get(target);
-  if (!depsMap) {
-    targetMap.set(target, (depsMap = new Map()));
+    trackEffects(deps);
   }
-  let deps = depsMap.get(key);
-  if (!deps) {
-    depsMap.set(key, (deps = new Set()));
-  }
+}
 
+export function trackEffects(deps) {
   // 将当前激活的副作用函数存放到 deps 依赖集合中去。
   deps.add(activeEffect);
   // 将所有与 activeEffect 副作用函数与之关联的依赖集合收集起来。
-  activeEffect.deps.push(deps);
+  activeEffect && activeEffect.deps.push(deps);
 }
 
 function trigger(target, key, type, newVal, oldVal) {
@@ -90,7 +94,7 @@ function trigger(target, key, type, newVal, oldVal) {
       case TriggerOpTypes.ADD:
         if (!isArray(target)) {
           deps.push(depsMap.get(ITERABLE_KEY));
-          if(isMap(target)) {
+          if (isMap(target)) {
             deps.push(depsMap.get(MAP_KEY_ITERATE_KEY));
           }
         } else if (isArray(target) && isIntegerKey(key)) {
@@ -101,7 +105,7 @@ function trigger(target, key, type, newVal, oldVal) {
       case TriggerOpTypes.DELETE:
         if (!isArray(target)) {
           deps.push(depsMap.get(ITERABLE_KEY));
-          if(isMap(target)) {
+          if (isMap(target)) {
             deps.push(depsMap.get(MAP_KEY_ITERATE_KEY));
           }
         }
@@ -124,7 +128,7 @@ function trigger(target, key, type, newVal, oldVal) {
   triggerEffects(createDep(effects));
 }
 
-function triggerEffects(effects) {
+export function triggerEffects(effects) {
   for (const effect of effects) {
     triggerEffect(effect);
   }
@@ -151,4 +155,12 @@ function resetTracking() {
   shouldTrack = true;
 }
 
-export { track, trigger, effect, pauseTracking, resetTracking, ITERABLE_KEY, MAP_KEY_ITERATE_KEY };
+export {
+  track,
+  trigger,
+  effect,
+  pauseTracking,
+  resetTracking,
+  ITERABLE_KEY,
+  MAP_KEY_ITERATE_KEY,
+};
