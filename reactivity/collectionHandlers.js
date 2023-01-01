@@ -1,8 +1,7 @@
-import { toReactive } from "./reactive";
+import { toReactive, ReactiveFlags, toRaw } from "./reactive";
 import { hasOwn, hasChanged, isMap } from "../shared/index";
 import { track, trigger, ITERABLE_KEY, MAP_KEY_ITERATE_KEY } from "./effect";
 import { TriggerOpTypes } from "./operation";
-import { ReactiveFlags, toRaw } from './util';
 
 
 function size(target) {

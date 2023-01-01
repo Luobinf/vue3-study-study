@@ -1,8 +1,7 @@
-import { effect, isReadonly, isShallow, toRaw } from "vue";
 import { hasChanged } from "../shared";
 import { createDep } from "./dep";
 import { activeEffect, shouldTrack, trackEffects, triggerEffects } from "./effect";
-import { reactive, toReactive } from "./reactive";
+import { reactive, toReactive, toRaw, isReadonly, isShallow } from "./reactive";
 
 class RefImpl {
   constructor(value, __v_isShallow = false) {

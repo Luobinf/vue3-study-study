@@ -1,8 +1,28 @@
-import { reactive, readonly } from "./reactive";
-import { track, trigger, pauseTracking, resetTracking, ITERABLE_KEY } from "./effect";
-import { hasOwn, hasChanged, isObject, isIntegerKey, isSymbol, extend } from "../shared/index";
+import {
+  reactive,
+  readonly,
+  ReactiveFlags,
+  reactiveMap,
+  shallowReactiveMap,
+  readonlyMap,
+  shallowReadonlyMap,
+} from "./reactive";
+import {
+  track,
+  trigger,
+  pauseTracking,
+  resetTracking,
+  ITERABLE_KEY,
+} from "./effect";
+import {
+  hasOwn,
+  hasChanged,
+  isObject,
+  isIntegerKey,
+  isSymbol,
+  extend,
+} from "../shared/index";
 import { TriggerOpTypes } from "./operation";
-import { ReactiveFlags } from './util';
 
 const get = createGetter();
 const shallowGet = createGetter(false, true);
@@ -76,7 +96,24 @@ function createGetter(isReadonly = false, isShallow = false) {
   // 第一次读取时：receiver 是 target 的代理对象，第二次读取时 receiver 不是 target 的代理对象。
   // 如何确定 receiver 是 target 的代理对象？
   return function get(target, key, receiver) {
-    if (key === ReactiveFlags.RAW) {
+    if (key === ReactiveFlags.IS_REACTIVE) {
+      return !isReadonly;
+    } else if (key === ReactiveFlags.IS_READONLY) {
+      return isReadonly;
+    } else if (key === ReactiveFlags.IS_SHALLOW) {
+      return isShallow;
+    } else if (
+      key === ReactiveFlags.RAW &&
+      receiver ===
+        (isReadonly
+          ? isShallow
+            ? shallowReadonlyMap
+            : readonlyMap
+          : isShallow
+          ? shallowReactiveMap
+          : reactiveMap
+        ).get(target)
+    ) {
       return target;
     }
 

@@ -4,16 +4,24 @@ import { isObject, toRawType } from "../shared/index";
 import { mutableHandlers, shallowReactiveHandlers, readonlyHandlers, shallowReadonlyHandlers } from "./baseHandlers";
 import { mutableCollectionHandlers } from "./collectionHandlers";
 
-const reactiveMap = new WeakMap();
-const shallowReactiveMap = new WeakMap();
-const readonlyMap = new WeakMap();
-const shallowReadonlyMap = new WeakMap();
+export const reactiveMap = new WeakMap();
+export const shallowReactiveMap = new WeakMap();
+export const readonlyMap = new WeakMap();
+export const shallowReadonlyMap = new WeakMap();
 
 const TargetType = {
   INVALID: 0,
   COMMON: 1,
   COLLECTION: 2,
 };
+
+
+export const ReactiveFlags = {
+	IS_SHALLOW: '__v_isShallow',
+	IS_REACTIVE: '__v_isReactive',
+	IS_READONLY: '__v_isReadonly',
+	RAW: '__v_raw',
+}
 
 
 function targetTypeMap(rawType) {
@@ -67,7 +75,7 @@ function createReactiveObject(
   return proxy;
 }
 
-function reactive(target) {
+export function reactive(target) {
   return createReactiveObject(
     target,
     false,
@@ -77,7 +85,7 @@ function reactive(target) {
   );
 }
 
-function shallowReactive(target) {
+export function shallowReactive(target) {
   return createReactiveObject(
     target,
     false,
@@ -88,7 +96,7 @@ function shallowReactive(target) {
 }
 
 // 例如组件的 props 是只读的
-function readonly(target) {
+export function readonly(target) {
   return createReactiveObject(
     target,
     true,
@@ -98,7 +106,7 @@ function readonly(target) {
   );
 }
 
-function shallowReadonly(target) {
+export function shallowReadonly(target) {
   return createReactiveObject(
     target,
     true,
@@ -109,15 +117,36 @@ function shallowReadonly(target) {
 }
 
 
-const toReactive = (value) => {
+export function isShallow(value) {
+	return !!(value && value[ReactiveFlags.IS_SHALLOW])
+}
+
+export function isReactive(value) {
+	return !!(value && value[ReactiveFlags.IS_REACTIVE])
+}
+
+export function isReadonly(value) {
+	return !!(value && value[ReactiveFlags.IS_READONLY])
+}
+
+export function isProxy(value) {
+	return isReactive(value) || isReadonly(value)
+}
+
+export function toRaw(observed) {
+	const raw = observed && observed[ReactiveFlags.RAW]
+	// observed 又可能会被多次代理
+	return raw ? toRaw(raw) : observed
+}
+
+export const toReactive = (value) => {
 	return isObject(value) ? reactive(value) : value
 }
 
+export const toReadonly = (value) => {
+	isObject(value) ? readonly(value) : value
+}
 
-export {
-  reactive,
-  shallowReactive,
-  readonly,
-  shallowReadonly,
-	toReactive
-};
+
+
+
